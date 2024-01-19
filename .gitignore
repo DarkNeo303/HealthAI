@@ -1,6 +1,4 @@
 venv/
 hash/
-.idea/
-__pycache__/
-README.md
-LICENSE
+/.idea/
+/__pycache__/
