@@ -2,3 +2,5 @@ venv/
 hash/
 .idea/
 __pycache__/
+README.md
+LICENSE
