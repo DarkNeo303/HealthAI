@@ -24,6 +24,93 @@ bot = telebot.TeleBot(os.getenv("TOKEN"))
 
 '''
 ======================================
+            ОТКЛИКИ БОТА      
+======================================
+'''
+
+
+# Обработчик Inline запросов врача
+def callCheckDoctor(call: telebot.types.CallbackQuery, message: dict):
+    # Иттерация по вариантам
+    for case in Switch(message['message']):
+        # Проверка вариантов
+        if case():
+            # Отсылаем сообщение
+            sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к администратору!',
+                        message['user'])
+        elif case('doctorAnonim'):
+            pass
+        elif case('patient'):
+            pass
+        elif case('qualification'):
+            pass
+        elif case('patientKick'):
+            pass
+        elif case('passchangePhoto'):
+            pass
+        elif case('doctorKick'):
+            pass
+
+
+# Обработчик Inline запросов пациента
+def callCheckPatient(call: telebot.types.CallbackQuery, message: dict):
+    # Иттерация по вариантам
+    for case in Switch(message['message']):
+        # Проверка вариантов
+        if case():
+            # Отсылаем сообщение
+            sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к администратору!',
+                        message['user'])
+        elif case('contactDoctor'):
+            pass
+        elif case('anonContactDoctor'):
+            pass
+        elif case('patientExtract'):
+            pass
+        elif case('patientDoctorKick'):
+            pass
+
+
+# Обработчик Inline запросов админа
+def callCheckAdmin(call: telebot.types.CallbackQuery, message: dict):
+    # Иттерация по вариантам
+    for case in Switch(message['message']):
+        # Проверка вариантов
+        if case():
+            # Отсылаем сообщение
+            sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к разработчику!',
+                        message['user'])
+
+
+# Обработчик Inline запросов
+@bot.callback_query_handler(func=lambda call: True)
+def callCheck(call: telebot.types.CallbackQuery):
+    # Получаем пользователя
+    user: Union[Patient, Doctor, type(None)] = getUser(int(call.message.text.split('|')[1]))
+    # Если пользователь найден
+    if user is not None and user.isExsist():
+        # Получаем сообщение
+        message: dict = {
+            'user': user,
+            'message': call.message.text.split('|')[0],
+            'params': call.message.text.split('|')[:2]
+        }
+        # Если пользователь - админ
+        if Admin(user).getAdmin() is not None:
+            # Передаём параметр
+            callCheckAdmin(call, message)
+        else:
+            # Если пользователь - пациент
+            if isinstance(user, Patient):
+                # Передаём параметр
+                callCheckPatient(call, message)
+            elif isinstance(user, Doctor):
+                # Передаём параметр
+                callCheckDoctor(call, message)
+
+
+'''
+======================================
         СИСТЕМНЫЕ ФУНКЦИИ БОТА        
 ======================================
 '''
@@ -499,7 +586,7 @@ def profile(message):
             telebot.types.InlineKeyboardButton("🤕 Отказ от пациента",
                                                callback_data=f"patientKick|{user.get()['id']}"),
             telebot.types.InlineKeyboardButton("📑 Смена документа",
-                                               callback_data=f"leave|{user.get()['id']}")
+                                               callback_data=f"changePhoto|{user.get()['id']}")
         )
         keyboard.add(
             telebot.types.InlineKeyboardButton("💔 Уволить подчинённого",
