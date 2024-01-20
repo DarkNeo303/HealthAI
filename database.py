@@ -13,8 +13,8 @@ import json
 import sqlite3
 import datetime
 from enum import Enum
+from random import choice
 from dotenv import load_dotenv
-from random import randint, choice
 from typing import Union, List, Tuple
 from dataclasses import dataclass, field
 
@@ -56,6 +56,11 @@ database.execute('''
 
 # Сохранение изменений
 connection.commit()
+
+
+# Операции
+class Operations(Enum):
+    MakeAdmin = 0
 
 
 # Тип данных таблицы
@@ -856,17 +861,33 @@ def getRandomPatient() -> Union[Patient, type(None)]:
 
 
 # Получение пользователя
-def getUser(id: int) -> Union[Patient, Doctor, type(None)]:
-    # Выполняем запросы
-    patient: Union[tuple, type(None)] = database.execute(f'SELECT * FROM patients WHERE id={id}').fetchone()
-    doctor: Union[tuple, type(None)] = database.execute(f'SELECT * FROM doctors WHERE id={id}').fetchone()
-    # Проверка условий
-    if patient is None and doctor is not None:
-        # Возвращаем врача
-        return Doctor(id)
-    elif patient is not None and doctor is None:
-        # Возвращаем пациента
-        return Patient(id)
-    else:
-        # Возвращаем ошибку
-        return None
+def getUser(id: Union[int, str]) -> Union[Patient, Doctor, type(None)]:
+    # Проверка типа
+    if isinstance(id, int):
+        # Выполняем запросы
+        patient: Union[tuple, type(None)] = database.execute(f'SELECT * FROM patients WHERE id={id}').fetchone()
+        doctor: Union[tuple, type(None)] = database.execute(f'SELECT * FROM doctors WHERE id={id}').fetchone()
+        # Проверка условий
+        if patient is None and doctor is not None:
+            # Возвращаем врача
+            return Doctor(id)
+        elif patient is not None and doctor is None:
+            # Возвращаем пациента
+            return Patient(id)
+        else:
+            # Возвращаем ошибку
+            return None
+    elif isinstance(id, str):
+        # Выполняем запросы
+        patient: Union[tuple, type(None)] = database.execute(f'SELECT * FROM patients WHERE username={id}').fetchone()
+        doctor: Union[tuple, type(None)] = database.execute(f'SELECT * FROM doctors WHERE username={id}').fetchone()
+        # Проверка условий
+        if patient is None and doctor is not None:
+            # Возвращаем врача
+            return Doctor(id)
+        elif patient is not None and doctor is None:
+            # Возвращаем пациента
+            return Patient(id)
+        else:
+            # Возвращаем ошибку
+            return None

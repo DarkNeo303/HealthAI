@@ -13,10 +13,10 @@ import telebot
 import threading
 from typing import Union
 from dotenv import load_dotenv
+from database import getRandomPatient
 from deep_translator import GoogleTranslator
-from database import getRandomPatient, getRandomDoctor
 from support import checkInt, Switch, ram, stringToBool
-from database import Patient, Doctor, getUser, History, Admin
+from database import Patient, Doctor, getUser, History, Admin, Operations
 
 # Инициализация
 ai.initAi()
@@ -31,7 +31,7 @@ bot = telebot.TeleBot(os.getenv("TOKEN"))
 
 
 # Обработчик функций админа
-def doctorHandler(message: dict, step: int = 0):
+def doctorHandler(call: telebot.types.Message, message: dict, step: int = 0):
     # Иттерация по вариантам
     for case in Switch(step):
         if case(0):
@@ -39,7 +39,7 @@ def doctorHandler(message: dict, step: int = 0):
 
 
 # Обработчик функций админа
-def patientHandler(message: dict, step: int = 0):
+def patientHandler(call: telebot.types.Message, message: dict, step: int = 0):
     # Иттерация по вариантам
     for case in Switch(step):
         if case(0):
@@ -47,17 +47,130 @@ def patientHandler(message: dict, step: int = 0):
 
 
 # Обработчик функций админа
-def adminHandler(message: dict, step: int = 0):
+def adminHandler(call: telebot.types.Message, message: dict, step: int = 0):
     # Иттерация по вариантам
     for case in Switch(step):
         if case(0):
-            pass
+            # Принимаем ответ
+            ram[call.text] = {'type': 'system'}
+            ram[call.text]['operation'] = Operations.MakeAdmin
+            # Отсылаем сообщение
+            sendMessage('🤔 Отправьте желаемый уровень.\nУровень не должен привышать ваш собственный!',
+                        message['user'])
+            # Регистрируем событие
+            bot.register_next_step_handler(call, adminHandler, message, 4)
         elif case(1):
             pass
         elif case(2):
             pass
         elif case(3):
             pass
+        elif case(4):
+            # Проверка числа
+            if checkInt(call.text):
+                # Если уровень не превышен
+                if int(call.text) < Admin(message['user']).getAdmin()['level']:
+                    # Последний ключ
+                    lastKey: str = "undefined"
+                    # Клавиатура
+                    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+                    keyboard.add(telebot.types.KeyboardButton(text="❌ Не оставлять"))
+                    # Вычисляем ID операции
+                    for key in ram.keys():
+                        try:
+                            # Если операция системная
+                            if ram[key]['type'] == 'system' and ram[key]['operation'] == Operations.MakeAdmin:
+                                # Прибавляем значение
+                                lastKey = key
+                        except KeyError:
+                            pass
+                    # Вносим ключ
+                    ram[lastKey]['level'] = int(call.text)
+                    # Отсылаем сообщение
+                    sendMessage('🤔 Отправьте желаемый префикс', message['user'], reply=keyboard)
+                    # Регистрируем событие
+                    bot.register_next_step_handler(call, adminHandler, message, 5)
+                else:
+                    # Отсылаем сообщение
+                    sendMessage('☝ Ответ не является допустимым числом.\nВаш уровень ниже или равен '
+                                'введённому!', message['user'])
+                    # Отсылаем сообщение
+                    sendMessage('🤔 Отправьте желаемый уровень.\nУровень не должен привышать ваш собственный!',
+                                message['user'])
+                    # Регистрируем событие
+                    bot.register_next_step_handler(call, adminHandler, message, 4)
+            else:
+                # Отсылаем сообщение
+                sendMessage('☝ Ответ не является допустимым числом!', message['user'])
+                # Отсылаем сообщение
+                sendMessage('🤔 Отправьте желаемый уровень.\nУровень не должен привышать ваш собственный!',
+                            message['user'])
+                # Регистрируем событие
+                bot.register_next_step_handler(call, adminHandler, message, 4)
+        elif case(5):
+            # Клавиатура
+            keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+            keyboard.add(telebot.types.KeyboardButton(text="✔ Подтвердить"),
+                         telebot.types.KeyboardButton(text="❌ Отменить"))
+            # Если нужно оставить префикс
+            if 'не оставлять' not in call.text.lower():
+                # Последний ключ
+                lastKey: str = "undefined"
+                # Вычисляем ID операции
+                for key in ram.keys():
+                    try:
+                        # Если операция системная
+                        if ram[key]['type'] == 'system' and ram[key]['operation'] == Operations.MakeAdmin:
+                            # Прибавляем значение
+                            lastKey = key
+                    except KeyError:
+                        pass
+                # Назначаем префикс
+                ram[lastKey]['prefix'] = call.text
+                # Отсылаем сообщение
+                sendMessage(f'✔ Назначен префикс: {call.text}\n\nПодтвердить назначение?', message['user'],
+                            reply=keyboard)
+            else:
+                # Отсылаем сообщение
+                sendMessage(f'✔ Префикс не назначен!\n\nПодтвердить назначение?', message['user'],
+                            reply=keyboard)
+            # Регистрируем событие
+            bot.register_next_step_handler(call, adminHandler, message, 6)
+        elif case(6):
+            # Последний ключ
+            lastKey: str = "undefined"
+            # Вычисляем ID операции
+            for key in ram.keys():
+                try:
+                    # Если операция системная
+                    if ram[key]['type'] == 'system' and ram[key]['operation'] == Operations.MakeAdmin:
+                        # Прибавляем значение
+                        lastKey = key
+                except KeyError:
+                    pass
+            # Проверка ответа
+            if 'подтвердить' in call.text.lower():
+                # Отсылаем сообщение
+                sendMessage(f'✔ Назначение подтверждено', message['user'])
+                # Попытка записи
+                try:
+                    # Создаём админа
+                    admin: Admin = Admin(getUser(lastKey)).writeNewAdmin(ram[lastKey]['level'], ram[lastKey]['prefix'])
+                    # Информируем кандидата
+                    sendMessage(f'💥 <b>Вы были назначены на должность администратора в сети HealthAI!</b>\n\n'
+                                f'Подойдите добросовестно к исполнению своих обязанностей 🤗\nУровень: '
+                                f'{admin.getAdmin()["level"]}\nПрефикс: {admin.getAdmin()["prefix"]}', lastKey,
+                                message['user'])
+                except KeyError:
+                    # Создаём админа
+                    admin: Admin = Admin(getUser(lastKey)).writeNewAdmin(ram[lastKey]['level'])
+                    # Информируем кандидата
+                    sendMessage(f'💥 <b>Вы были назначены на должность администратора в сети HealthAI!</b>\n\n'
+                                f'Подойдите добросовестно к исполнению своих обязанностей 🤗\nУровень: '
+                                f'{admin.getAdmin()["level"]}\nПрефикс: ❌ Не указан', lastKey, message['user'])
+            else:
+                # Отсылаем сообщение
+                sendMessage(f'❌ Назначение отменено', message['user'])
 
 
 '''
@@ -68,7 +181,7 @@ def adminHandler(message: dict, step: int = 0):
 
 
 # Обработчик Inline запросов врача
-def callCheckDoctor(message: dict):
+def callCheckDoctor(call: telebot.types.Message, message: dict):
     # Иттерация по вариантам
     for case in Switch(message['message']):
         # Проверка вариантов
@@ -91,7 +204,7 @@ def callCheckDoctor(message: dict):
 
 
 # Обработчик Inline запросов пациента
-def callCheckPatient(message: dict):
+def callCheckPatient(call: telebot.types.Message, message: dict):
     # Иттерация по вариантам
     for case in Switch(message['message']):
         # Проверка вариантов
@@ -110,7 +223,7 @@ def callCheckPatient(message: dict):
 
 
 # Обработчик Inline запросов админа
-def callCheckAdmin(message: dict):
+def callCheckAdmin(call: telebot.types.Message, message: dict):
     # Иттерация по вариантам
     for case in Switch(message['message']):
         # Проверка вариантов
@@ -125,7 +238,7 @@ def callCheckAdmin(message: dict):
                 sendMessage('🤔 Введите имя пользователя или его ID для назначения в админы',
                             message['user'])
                 # Передаём параметр в функцию
-                adminHandler(message)
+                bot.register_next_step_handler(call, adminHandler, message)
             else:
                 # Отсылаем сообщение
                 sendMessage('☝ Ваш ранг недостаточен!', message['user'])
@@ -133,10 +246,10 @@ def callCheckAdmin(message: dict):
             # Если ранг достаточен
             if Admin(message['user']).getAdmin()['level'] >= 1:
                 # Отсылаем сообщение
-                sendMessage('🤔 Введите имя пользователя или его ID для назначения в админы',
+                sendMessage('🤔 Введите имя пользователя или его ID для контакта',
                             message['user'])
                 # Передаём параметр в функцию
-                adminHandler(message, 1)
+                bot.register_next_step_handler(call, adminHandler, message, 1)
             else:
                 # Отсылаем сообщение
                 sendMessage('☝ Ваш ранг недостаточен!', message['user'])
@@ -147,7 +260,7 @@ def callCheckAdmin(message: dict):
                 sendMessage('🤔 Введите имя пользователя или его ID для удаления из админов',
                             message['user'])
                 # Передаём параметр в функцию
-                adminHandler(message, 2)
+                bot.register_next_step_handler(call, adminHandler, message, 2)
             else:
                 # Отсылаем сообщение
                 sendMessage('☝ Ваш ранг недостаточен!', message['user'])
@@ -158,7 +271,7 @@ def callCheckAdmin(message: dict):
                 sendMessage('🤔 Введите имя пользователя или его ID для удаления из врачей',
                             message['user'])
                 # Передаём параметр в функцию
-                adminHandler(message, 3)
+                bot.register_next_step_handler(call, adminHandler, message, 3)
             else:
                 # Отсылаем сообщение
                 sendMessage('☝ Ваш ранг недостаточен!', message['user'])
@@ -180,15 +293,15 @@ def callCheck(call: telebot.types.CallbackQuery):
         # Если пользователь - админ
         if Admin(user).getAdmin() is not None:
             # Передаём параметр
-            callCheckAdmin(message)
+            callCheckAdmin(call.message, message)
         else:
             # Если пользователь - пациент
             if isinstance(user, Patient):
                 # Передаём параметр
-                callCheckPatient(message)
+                callCheckPatient(call.message, message)
             elif isinstance(user, Doctor):
                 # Передаём параметр
-                callCheckDoctor(message)
+                callCheckDoctor(call.message, message)
 
 
 '''
@@ -1027,10 +1140,11 @@ def clearRAM(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequired: in
         for key in ramDict.keys():
             try:
                 # Если есть ключ
-                if ramDict[key]['type'] == 'doctor' and len(ramDict[key].keys()) < doctorKeysRequired:
+                if (ramDict[key]['type'] == 'doctor' and len(ramDict[key].keys()) < doctorKeysRequired or
+                        ramDict[key]['type'] == 'patient' and len(ramDict[key].keys()) < patientKeysRequired):
                     # Возвращаем ошибку
                     doClear = False
-                elif ramDict[key]['type'] == 'patient' and len(ramDict[key].keys()) < patientKeysRequired:
+                elif ramDict[key]['type'] == 'system':
                     # Возвращаем ошибку
                     doClear = False
             except KeyError:
