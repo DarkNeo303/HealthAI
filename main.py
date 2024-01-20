@@ -1105,7 +1105,7 @@ def help(message):
 
 # Холдер команды списка
 @bot.message_handler(commands=['list'])
-def help(message):
+def listCommand(message):
     pass
 
 
