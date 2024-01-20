@@ -1100,7 +1100,9 @@ def photoHandler(message):
 # Холдер команды помощи
 @bot.message_handler(commands=['help'])
 def help(message):
-    pass
+    # Отправляем сообщение
+    sendMessage(f'🤗 <b>Помощь по боту</b>\n\n👇 <a href="{os.getenv("HELP")}">Кликни на меня</a>',
+                getUser(message.from_user.id))
 
 
 # Холдер команды списка
