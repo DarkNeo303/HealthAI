@@ -30,20 +30,22 @@ bot = telebot.TeleBot(os.getenv("TOKEN"))
 '''
 
 
-# Обработчик функций админа
+# Обработчик функций врача
 def doctorHandler(call: telebot.types.Message, message: dict, step: int = 0):
     # Иттерация по вариантам
     for case in Switch(step):
         if case(0):
-            pass
+            # Ломаем блок
+            break
 
 
-# Обработчик функций админа
+# Обработчик функций пациента
 def patientHandler(call: telebot.types.Message, message: dict, step: int = 0):
     # Иттерация по вариантам
     for case in Switch(step):
         if case(0):
-            pass
+            # Ломаем блок
+            break
 
 
 # Обработчик функций админа
@@ -59,12 +61,17 @@ def adminHandler(call: telebot.types.Message, message: dict, step: int = 0):
                         message['user'])
             # Регистрируем событие
             bot.register_next_step_handler(call, adminHandler, message, 4)
+            # Ломаем блок
+            break
         elif case(1):
-            pass
+            # Ломаем блок
+            break
         elif case(2):
-            pass
+            # Ломаем блок
+            break
         elif case(3):
-            pass
+            # Ломаем блок
+            break
         elif case(4):
             # Проверка числа
             if checkInt(call.text):
@@ -107,6 +114,8 @@ def adminHandler(call: telebot.types.Message, message: dict, step: int = 0):
                             message['user'])
                 # Регистрируем событие
                 bot.register_next_step_handler(call, adminHandler, message, 4)
+            # Ломаем блок
+            break
         elif case(5):
             # Клавиатура
             keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -136,6 +145,8 @@ def adminHandler(call: telebot.types.Message, message: dict, step: int = 0):
                             reply=keyboard)
             # Регистрируем событие
             bot.register_next_step_handler(call, adminHandler, message, 6)
+            # Ломаем блок
+            break
         elif case(6):
             # Последний ключ
             lastKey: str = "undefined"
@@ -171,6 +182,8 @@ def adminHandler(call: telebot.types.Message, message: dict, step: int = 0):
             else:
                 # Отсылаем сообщение
                 sendMessage(f'❌ Назначение отменено', message['user'])
+            # Ломаем блок
+            break
 
 
 '''
@@ -189,18 +202,26 @@ def callCheckDoctor(call: telebot.types.Message, message: dict):
             # Отсылаем сообщение
             sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к администратору!',
                         message['user'])
+            # Ломаем блок
+            break
         elif case('doctorAnonim'):
-            pass
+            # Ломаем блок
+            break
         elif case('patient'):
-            pass
+            # Ломаем блок
+            break
         elif case('qualification'):
-            pass
+            # Ломаем блок
+            break
         elif case('patientKick'):
-            pass
+            # Ломаем блок
+            break
         elif case('passchangePhoto'):
-            pass
+            # Ломаем блок
+            break
         elif case('doctorKick'):
-            pass
+            # Ломаем блок
+            break
 
 
 # Обработчик Inline запросов пациента
@@ -212,14 +233,20 @@ def callCheckPatient(call: telebot.types.Message, message: dict):
             # Отсылаем сообщение
             sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к администратору!',
                         message['user'])
+            # Ломаем блок
+            break
         elif case('contactDoctor'):
-            pass
+            # Ломаем блок
+            break
         elif case('anonContactDoctor'):
-            pass
+            # Ломаем блок
+            break
         elif case('patientExtract'):
-            pass
+            # Ломаем блок
+            break
         elif case('patientDoctorKick'):
-            pass
+            # Ломаем блок
+            break
 
 
 # Обработчик Inline запросов админа
@@ -231,6 +258,8 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
             # Отсылаем сообщение
             sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к разработчику!',
                         message['user'])
+            # Ломаем блок
+            break
         elif case('makeAdmin'):
             # Если ранг достаточен
             if Admin(message['user']).getAdmin()['level'] >= 4:
@@ -242,6 +271,8 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
             else:
                 # Отсылаем сообщение
                 sendMessage('☝ Ваш ранг недостаточен!', message['user'])
+            # Ломаем блок
+            break
         elif case('contactUser'):
             # Если ранг достаточен
             if Admin(message['user']).getAdmin()['level'] >= 1:
@@ -253,6 +284,8 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
             else:
                 # Отсылаем сообщение
                 sendMessage('☝ Ваш ранг недостаточен!', message['user'])
+            # Ломаем блок
+            break
         elif case('removeAdmin'):
             # Если ранг достаточен
             if Admin(message['user']).getAdmin()['level'] >= 3:
@@ -264,6 +297,8 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
             else:
                 # Отсылаем сообщение
                 sendMessage('☝ Ваш ранг недостаточен!', message['user'])
+            # Ломаем блок
+            break
         elif case('removeDoctor'):
             # Если ранг достаточен
             if Admin(message['user']).getAdmin()['level'] >= 2:
@@ -275,20 +310,22 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
             else:
                 # Отсылаем сообщение
                 sendMessage('☝ Ваш ранг недостаточен!', message['user'])
+            # Ломаем блок
+            break
 
 
 # Обработчик Inline запросов
 @bot.callback_query_handler(func=lambda call: True)
 def callCheck(call: telebot.types.CallbackQuery):
     # Получаем пользователя
-    user: Union[Patient, Doctor, type(None)] = getUser(int(call.message.text.split('|')[1]))
+    user: Union[Patient, Doctor, type(None)] = getUser(int(call.data.split('|')[1]))
     # Если пользователь найден
     if user is not None and user.isExsist():
         # Получаем сообщение
         message: dict = {
             'user': user,
-            'message': call.message.text.split('|')[0],
-            'params': call.message.text.split('|')[:2]
+            'message': call.data.split('|')[0],
+            'params': call.data.split('|')[:2]
         }
         # Если пользователь - админ
         if Admin(user).getAdmin() is not None:
