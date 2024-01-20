@@ -772,53 +772,69 @@ class Admin:
         # Заполняем поля
         self.__level: int = 0
         self.__prefix: str = "undefined"
-        # Проверка документа
-        with open(os.getenv('ADMINS'), 'r+', encoding=os.getenv('CODEC')) as f:
-            # Иттерация по списку
-            for admin in json.loads(f.read()):
-                # Если админ существует
-                if admin['id'] == self.__id:
-                    try:
-                        # Назначаем уровень
-                        self.__level = admin['level']
-                        self.__prefix = admin['prefix']
-                    except Exception:
-                        pass
+        try:
+            # Проверка документа
+            with open(os.getenv('ADMINS'), 'r+', encoding=os.getenv('CODEC')) as f:
+                # Получаем список
+                data: List[dict] = json.loads(f.read())
+                # Иттерация по списку
+                for admin in data:
+                    # Если админ существует
+                    if admin['id'] == self.__id:
+                        try:
+                            # Назначаем уровень
+                            self.__level = admin['level']
+                            self.__prefix = admin['prefix']
+                        except Exception:
+                            pass
+        except json.decoder.JSONDecodeError:
+            pass
 
     # Запись админа
     def writeNewAdmin(self, level: int, prefix: str = "undefined") -> bool:
-        # Проверка документа
-        with open(os.getenv('ADMINS'), 'w+') as f:
-            # Иттерация по списку
-            for admin in json.loads(f.read()):
-                # Если админ существует
-                if admin['id'] == self.__id:
-                    # Возвращаем результат
-                    return False
-            # Запоминаем параметры
-            self.__level = level
-            self.__prefix = prefix
-            # Создаем нового админа
-            admin: dict = {
-                'id': self.__id,
-                'level': self.__level,
-                'prefix': self.__prefix
-            }
+        try:
+            # Проверка документа
+            with open(os.getenv('ADMINS'), 'r+', encoding=os.getenv('CODEC')) as f:
+                # Получаем список
+                data: List[dict] = json.loads(f.read())
+                # Иттерация по списку
+                for admin in data:
+                    # Если админ существует
+                    if admin['id'] == self.__id:
+                        # Возвращаем результат
+                        return False
+                # Запоминаем параметры
+                self.__level = level
+                self.__prefix = prefix
+                # Создаем нового админа
+                admin: dict = {
+                    'id': self.__id,
+                    'level': self.__level,
+                    'prefix': self.__prefix
+                }
             # Если есть список
-            if json.loads(f.read()):
-                # Читаем документ
-                document: List[dict] = json.loads(f.read())
-                # Вносим нового админа
-                document.append(admin)
-                # Записываем в файл
-                f.write(json.dumps(document))
+            if data:
+                # Запись в документ
+                with open(os.getenv('ADMINS'), 'w+', encoding=os.getenv('CODEC')) as f:
+                    # Читаем документ
+                    document: List[dict] = data
+                    # Вносим нового админа
+                    document.append(admin)
+                    # Записываем в файл
+                    f.write(json.dumps(document))
+                # Возвращаем результат
+                return True
             else:
-                # Создаём документ
-                document: List[dict] = [admin]
-                # Записываем в файл
-                f.write(json.dumps(document))
-            # Возвращаем результат
-            return True
+                # Запись в документ
+                with open(os.getenv('ADMINS'), 'w+', encoding=os.getenv('CODEC')) as f:
+                    # Создаём документ
+                    document: List[dict] = [admin]
+                    # Записываем в файл
+                    f.write(json.dumps(document))
+                # Возвращаем результат
+                return True
+        except json.decoder.JSONDecodeError:
+            pass
 
     # Получение пользователя
     def getUser(self) -> Union[Patient, Doctor]:
