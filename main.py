@@ -14,6 +14,7 @@ import threading
 from typing import Union
 from dotenv import load_dotenv
 from deep_translator import GoogleTranslator
+from database import getRandomPatient, getRandomDoctor
 from support import checkInt, Switch, ram, stringToBool
 from database import Patient, Doctor, getUser, History, Admin
 
@@ -21,6 +22,37 @@ from database import Patient, Doctor, getUser, History, Admin
 ai.initAi()
 load_dotenv()
 bot = telebot.TeleBot(os.getenv("TOKEN"))
+
+'''
+======================================
+        ОБРАБОТЧИКИ ОТКЛИКОВ    
+======================================
+'''
+
+
+# Обработчик функций админа
+def doctorHandler(message: dict, step: int = 0):
+    # Иттерация по вариантам
+    for case in Switch(step):
+        if case(0):
+            pass
+
+
+# Обработчик функций админа
+def patientHandler(message: dict, step: int = 0):
+    # Иттерация по вариантам
+    for case in Switch(step):
+        if case(0):
+            pass
+
+
+# Обработчик функций админа
+def adminHandler(message: dict, step: int = 0):
+    # Иттерация по вариантам
+    for case in Switch(step):
+        if case(0):
+            pass
+
 
 '''
 ======================================
@@ -126,7 +158,7 @@ def callCheck(call: telebot.types.CallbackQuery):
 def sendMessage(message: str, to: Union[Patient, Doctor, int], self: Union[Patient, Doctor, str, None] = None,
                 reply: Union[telebot.types.InlineKeyboardMarkup, telebot.types.ReplyKeyboardMarkup,
                 telebot.types.ReplyKeyboardRemove(), type(None)] = None, photo: Union[bytes, type(None)] = None,
-                parse_mode: str = 'html'):
+                parse_mode: str = 'html') -> telebot.types.Message:
     # Проверка типов
     if isinstance(self, Patient) or isinstance(self, Doctor):
         # Проверка типов
@@ -138,62 +170,66 @@ def sendMessage(message: str, to: Union[Patient, Doctor, int], self: Union[Patie
                     # Проверка условий
                     if reply is None:
                         # Отправляем сообщение
-                        bot.send_message(to.get()['id'], message, parse_mode)
+                        return bot.send_message(to.get()['id'], message, parse_mode)
                     else:
                         # Отправляем сообщение
-                        bot.send_message(to.get()['id'], message, parse_mode, reply_markup=reply)
+                        return bot.send_message(to.get()['id'], message, parse_mode, reply_markup=reply)
                 else:
                     # Проверка условий
                     if reply is None:
                         # Отправляем фото
-                        bot.send_photo(to.get()['id'], photo, message, parse_mode)
+                        return bot.send_photo(to.get()['id'], photo, message, parse_mode)
                     else:
                         # Отправляем фото
-                        bot.send_photo(to.get()['id'], photo, message, parse_mode, reply_markup=reply)
+                        return bot.send_photo(to.get()['id'], photo, message, parse_mode, reply_markup=reply)
             else:
                 # Проверка условий
                 if photo is None:
                     # Проверка условий
                     if reply is None:
                         # Отправляем сообщение
-                        bot.send_message(to.get()['id'],
-                                         GoogleTranslator(source='auto', target=to.get()['lang']).translate(message),
-                                         parse_mode)
+                        return bot.send_message(to.get()['id'],
+                                                GoogleTranslator(source='auto', target=to.get()['lang']).translate(
+                                                    message),
+                                                parse_mode)
                     else:
                         # Отправляем сообщение
-                        bot.send_message(to.get()['id'],
-                                         GoogleTranslator(source='auto', target=to.get()['lang']).translate(message),
-                                         parse_mode, reply_markup=reply)
+                        return bot.send_message(to.get()['id'],
+                                                GoogleTranslator(source='auto', target=to.get()['lang']).translate(
+                                                    message),
+                                                parse_mode, reply_markup=reply)
                 else:
                     # Проверка условий
                     if reply is None:
                         # Отправляем фото
-                        bot.send_photo(to.get()['id'], photo,
-                                       GoogleTranslator(source='auto', target=to.get()['lang']).translate(message),
-                                       parse_mode)
+                        return bot.send_photo(to.get()['id'], photo,
+                                              GoogleTranslator(source='auto', target=to.get()['lang']).translate(
+                                                  message),
+                                              parse_mode)
                     else:
                         # Отправляем фото
-                        bot.send_photo(to.get()['id'], photo,
-                                       GoogleTranslator(source='auto', target=to.get()['lang']).translate(message),
-                                       parse_mode, reply_markup=reply)
+                        return bot.send_photo(to.get()['id'], photo,
+                                              GoogleTranslator(source='auto', target=to.get()['lang']).translate(
+                                                  message),
+                                              parse_mode, reply_markup=reply)
         elif isinstance(to, int):
             # Проверка условий
             if photo is None:
                 # Проверка условий
                 if reply is None:
                     # Отправляем сообщение
-                    bot.send_message(to, message, parse_mode)
+                    return bot.send_message(to, message, parse_mode)
                 else:
                     # Отправляем сообщение
-                    bot.send_message(to, message, parse_mode, reply_markup=reply)
+                    return bot.send_message(to, message, parse_mode, reply_markup=reply)
             else:
                 # Проверка условий
                 if reply is None:
                     # Отправляем фото
-                    bot.send_photo(to, photo, message, parse_mode)
+                    return bot.send_photo(to, photo, message, parse_mode)
                 else:
                     # Отправляем фото
-                    bot.send_photo(to, photo, message, parse_mode, reply_markup=reply)
+                    return bot.send_photo(to, photo, message, parse_mode, reply_markup=reply)
     elif isinstance(self, type(None)):
         # Проверка типов
         if isinstance(to, Patient) or isinstance(to, Doctor):
@@ -202,36 +238,36 @@ def sendMessage(message: str, to: Union[Patient, Doctor, int], self: Union[Patie
                 # Проверка условий
                 if reply is None:
                     # Отправляем сообщение
-                    bot.send_message(to.get()['id'], message, parse_mode)
+                    return bot.send_message(to.get()['id'], message, parse_mode)
                 else:
                     # Отправляем сообщение
-                    bot.send_message(to.get()['id'], message, parse_mode, reply_markup=reply)
+                    return bot.send_message(to.get()['id'], message, parse_mode, reply_markup=reply)
             else:
                 # Проверка условий
                 if reply is None:
                     # Отправляем фото
-                    bot.send_photo(to.get()['id'], photo, message, parse_mode)
+                    return bot.send_photo(to.get()['id'], photo, message, parse_mode)
                 else:
                     # Отправляем фото
-                    bot.send_photo(to.get()['id'], photo, message, parse_mode, reply_markup=reply)
+                    return bot.send_photo(to.get()['id'], photo, message, parse_mode, reply_markup=reply)
         elif isinstance(to, int):
             # Проверка условий
             if photo is None:
                 # Проверка условий
                 if reply is None:
                     # Отправляем сообщение
-                    bot.send_message(to, message, parse_mode)
+                    return bot.send_message(to, message, parse_mode)
                 else:
                     # Отправляем сообщение
-                    bot.send_message(to, message, parse_mode, reply_markup=reply)
+                    return bot.send_message(to, message, parse_mode, reply_markup=reply)
             else:
                 # Проверка условий
                 if reply is None:
                     # Отправляем фото
-                    bot.send_photo(to, photo, message, parse_mode)
+                    return bot.send_photo(to, photo, message, parse_mode)
                 else:
                     # Отправляем фото
-                    bot.send_photo(to, photo, message, parse_mode, reply_markup=reply)
+                    return bot.send_photo(to, photo, message, parse_mode, reply_markup=reply)
     elif isinstance(self, str):
         # Проверка типов
         if isinstance(to, Patient) or isinstance(to, Doctor):
@@ -242,65 +278,70 @@ def sendMessage(message: str, to: Union[Patient, Doctor, int], self: Union[Patie
                     # Проверка условий
                     if reply is None:
                         # Отправляем сообщение
-                        bot.send_message(to.get()['id'], message, parse_mode)
+                        return bot.send_message(to.get()['id'], message, parse_mode)
                     else:
                         # Отправляем сообщение
-                        bot.send_message(to.get()['id'], message, parse_mode, reply_markup=reply)
+                        return bot.send_message(to.get()['id'], message, parse_mode, reply_markup=reply)
                 else:
                     # Проверка условий
                     if reply is None:
                         # Отправляем фото
-                        bot.send_photo(to.get()['id'], photo, message, parse_mode)
+                        return bot.send_photo(to.get()['id'], photo, message, parse_mode)
                     else:
                         # Отправляем фото
-                        bot.send_photo(to.get()['id'], photo, message, parse_mode, reply_markup=reply)
+                        return bot.send_photo(to.get()['id'], photo, message, parse_mode, reply_markup=reply)
             else:
                 # Проверка условий
                 if photo is None:
                     # Проверка условий
                     if reply is None:
                         # Отправляем сообщение
-                        bot.send_message(to.get()['id'],
-                                         GoogleTranslator(source='auto', target=to.get()['lang']).translate(message),
-                                         parse_mode)
+                        return bot.send_message(to.get()['id'],
+                                                GoogleTranslator(source='auto', target=to.get()['lang']).translate(
+                                                    message),
+                                                parse_mode)
                     else:
                         # Отправляем сообщение
-                        bot.send_message(to.get()['id'],
-                                         GoogleTranslator(source='auto', target=to.get()['lang']).translate(message),
-                                         parse_mode, reply_markup=reply)
+                        return bot.send_message(to.get()['id'],
+                                                GoogleTranslator(source='auto', target=to.get()['lang']).translate(
+                                                    message),
+                                                parse_mode, reply_markup=reply)
                 else:
                     # Проверка условий
                     if reply is None:
                         # Отправляем фото
-                        bot.send_photo(to.get()['id'], photo,
-                                       GoogleTranslator(source='auto', target=to.get()['lang']).translate(message),
-                                       parse_mode)
+                        return bot.send_photo(to.get()['id'], photo,
+                                              GoogleTranslator(source='auto', target=to.get()['lang']).translate(
+                                                  message),
+                                              parse_mode)
                     else:
                         # Отправляем фото
-                        bot.send_photo(to.get()['id'], photo,
-                                       GoogleTranslator(source='auto', target=to.get()['lang']).translate(message),
-                                       parse_mode, reply_markup=reply)
+                        return bot.send_photo(to.get()['id'], photo,
+                                              GoogleTranslator(source='auto', target=to.get()['lang']).translate(
+                                                  message),
+                                              parse_mode, reply_markup=reply)
         elif isinstance(to, int):
             # Проверка условий
             if photo is None:
                 # Проверка условий
                 if reply is None:
                     # Отправляем сообщение
-                    bot.send_message(to, GoogleTranslator(source='auto', target=self).translate(message), parse_mode)
+                    return bot.send_message(to, GoogleTranslator(source='auto', target=self).translate(message),
+                                            parse_mode)
                 else:
                     # Отправляем сообщение
-                    bot.send_message(to, GoogleTranslator(source='auto', target=self).translate(message),
-                                     parse_mode, reply_markup=reply)
+                    return bot.send_message(to, GoogleTranslator(source='auto', target=self).translate(message),
+                                            parse_mode, reply_markup=reply)
             else:
                 # Проверка условий
                 if reply is None:
                     # Отправляем фото
-                    bot.send_photo(to, photo, GoogleTranslator(source='auto', target=self).translate(message),
-                                   parse_mode)
+                    return bot.send_photo(to, photo, GoogleTranslator(source='auto', target=self).translate(message),
+                                          parse_mode)
                 else:
                     # Отправляем фото
-                    bot.send_photo(to, photo, GoogleTranslator(source='auto', target=self).translate(message),
-                                   parse_mode, reply_markup=reply)
+                    return bot.send_photo(to, photo, GoogleTranslator(source='auto', target=self).translate(message),
+                                          parse_mode, reply_markup=reply)
 
 
 # Регистрация врача

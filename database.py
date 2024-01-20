@@ -14,6 +14,7 @@ import sqlite3
 import datetime
 from enum import Enum
 from dotenv import load_dotenv
+from random import randint, choice
 from typing import Union, List, Tuple
 from dataclasses import dataclass, field
 
@@ -828,6 +829,30 @@ class Admin:
             }
         # Возвращаем ошибку
         return None
+
+
+# Получение случайного врача
+def getRandomDoctor() -> Union[Doctor, type(None)]:
+    # Выполняем запрос
+    doctor: Union[tuple, type(None)] = choice(database.execute('SELECT * FROM doctors'))
+    # Если есть результат
+    if doctor is not None:
+        # Возвращаем результат
+        return Doctor(doctor[0])
+    # Возвращаем результат
+    return None
+
+
+# Получение случайного пациента
+def getRandomPatient() -> Union[Patient, type(None)]:
+    # Выполняем запрос
+    patient: Union[tuple, type(None)] = choice(database.execute('SELECT * FROM patients'))
+    # Если есть результат
+    if patient is not None:
+        # Возвращаем результат
+        return Patient(patient[0])
+    # Возвращаем результат
+    return None
 
 
 # Получение пользователя
