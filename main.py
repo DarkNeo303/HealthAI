@@ -30,7 +30,7 @@ bot = telebot.TeleBot(os.getenv("TOKEN"))
 
 
 # Обработчик Inline запросов врача
-def callCheckDoctor(call: telebot.types.CallbackQuery, message: dict):
+def callCheckDoctor(message: dict):
     # Иттерация по вариантам
     for case in Switch(message['message']):
         # Проверка вариантов
@@ -53,7 +53,7 @@ def callCheckDoctor(call: telebot.types.CallbackQuery, message: dict):
 
 
 # Обработчик Inline запросов пациента
-def callCheckPatient(call: telebot.types.CallbackQuery, message: dict):
+def callCheckPatient(message: dict):
     # Иттерация по вариантам
     for case in Switch(message['message']):
         # Проверка вариантов
@@ -72,7 +72,7 @@ def callCheckPatient(call: telebot.types.CallbackQuery, message: dict):
 
 
 # Обработчик Inline запросов админа
-def callCheckAdmin(call: telebot.types.CallbackQuery, message: dict):
+def callCheckAdmin(message: dict):
     # Иттерация по вариантам
     for case in Switch(message['message']):
         # Проверка вариантов
@@ -80,6 +80,12 @@ def callCheckAdmin(call: telebot.types.CallbackQuery, message: dict):
             # Отсылаем сообщение
             sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к разработчику!',
                         message['user'])
+        elif case('makeAdmin'):
+            pass
+        elif case('removeAdmin'):
+            pass
+        elif case('removeDoctor'):
+            pass
 
 
 # Обработчик Inline запросов
@@ -98,15 +104,15 @@ def callCheck(call: telebot.types.CallbackQuery):
         # Если пользователь - админ
         if Admin(user).getAdmin() is not None:
             # Передаём параметр
-            callCheckAdmin(call, message)
+            callCheckAdmin(message)
         else:
             # Если пользователь - пациент
             if isinstance(user, Patient):
                 # Передаём параметр
-                callCheckPatient(call, message)
+                callCheckPatient(message)
             elif isinstance(user, Doctor):
                 # Передаём параметр
-                callCheckDoctor(call, message)
+                callCheckDoctor(message)
 
 
 '''
@@ -839,7 +845,7 @@ def adminPanel(message):
                 telebot.types.InlineKeyboardButton("🕵 Назначение админа",
                                                    callback_data=f"makeAdmin|{admin.getUser().get()['id']}"),
                 telebot.types.InlineKeyboardButton("❌ Удаление админа",
-                                                   callback_data=f"makeAdmin|{admin.getUser().get()['id']}")
+                                                   callback_data=f"removeAdmin|{admin.getUser().get()['id']}")
             )
             keyboard.add(
                 telebot.types.InlineKeyboardButton("💥 Разжаловать врача",
