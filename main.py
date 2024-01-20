@@ -11,10 +11,10 @@ import os
 import time
 import telebot
 import threading
-from typing import Union
+from typing import Union, List
 from dotenv import load_dotenv
-from database import getRandomPatient
 from deep_translator import GoogleTranslator
+from database import getRandomPatient, getAllUserList
 from support import checkInt, Switch, ram, stringToBool
 from database import Patient, Doctor, getUser, History, Admin, Operations
 
@@ -1108,7 +1108,154 @@ def help(message):
 # Холдер команды списка
 @bot.message_handler(commands=['list'])
 def listCommand(message):
-    pass
+    # Получаем список пользователей
+    userList: List[Union[Doctor, Patient]] = getAllUserList()
+    # Если список не пустой
+    if userList:
+        # Попытка парсинга
+        try:
+            # Получаем список аргументов
+            args: List[str] = message.text.split()
+            args = args[1:]
+            # Проверка аргументов
+            for case in Switch(args[0]):
+                if case('doctors') or case('doctors') or case('доктора'):
+                    # Сообщение
+                    msg: str = "📃 <b>Список врачей и админов:</b>\n\n👨‍⚕️ <b>Врачи:</b>\n"
+                    # Словари
+                    doctors: dict = {
+                        'count': 0,
+                        'message': ""
+                    }
+                    # Перебор администраторов
+                    for user in userList:
+                        # Если пользователь - врач
+                        if isinstance(user, Doctor):
+                            # Прибавляем иттератор
+                            doctors['count'] += 1
+                            # Если верифицирован
+                            if user.get()['document'] is not None:
+                                # Если есть номер телефона
+                                if 'phone' in user.get():
+                                    # Вносим в список
+                                    doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                                                           f"[{user.get()['qualification']}]\n📱 Телефон: "
+                                                           f"{user.get()['phone']}\n")
+                                else:
+                                    # Вносим в список
+                                    doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                                                           f"[{user.get()['qualification']}]\n")
+                            else:
+                                # Если есть номер телефона
+                                if 'phone' in user.get():
+                                    # Вносим в список
+                                    doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                                                           f"[{user.get()['qualification']}]\n📱 Телефон: "
+                                                           f"{user.get()['phone']}\n")
+                                else:
+                                    # Вносим в список
+                                    doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                                                           f"[{user.get()['qualification']}]\n")
+                    # Прибавляем сообщения
+                    msg += doctors['message']
+                    # Отправляем сообщение
+                    sendMessage(msg, getUser(message.from_user.id))
+                    # Ломаем функцию
+                    break
+                elif case('admins') or case('admin') or case('админы'):
+                    # Сообщение
+                    msg: str = "📃 <b>Список врачей и админов:</b>\n\n🕵️‍♂️ <b>Администрация: </b>\n"
+                    # Словари
+                    admins: dict = {
+                        'count': 0,
+                        'message': ""
+                    }
+                    # Перебор администраторов
+                    for user in userList:
+                        # Если пользователь - администратор
+                        if Admin(user).getAdmin()['level'] > 0:
+                            # Прибавляем иттератор
+                            admins['count'] += 1
+                            # Если есть префикс
+                            if Admin(user).getAdmin()['prefix'] != "undefined":
+                                # Вносим в список
+                                admins['message'] += (f"{admins['count']}. {user.get()['username']} "
+                                                      f"[{Admin(user).getAdmin()['prefix']}]\n")
+                            else:
+                                # Вносим в список
+                                admins['message'] += f"{admins['count']}. {user.get()['username']}\n"
+                    # Прибавляем сообщения
+                    msg += admins['message']
+                    # Отправляем сообщение
+                    sendMessage(msg, getUser(message.from_user.id))
+                    # Ломаем функцию
+                    break
+                elif case():
+                    # Отправляем сообщение
+                    sendMessage('☝ <b>Неизвестный аргумент!</b>\n\nМожет быть вы имели ввиду «/list», '
+                                '«/list doctors» или «/list admins»?', getUser(message.from_user.id))
+                    # Ломаем функцию
+                    break
+        except Exception:
+            # Сообщение
+            msg: str = "📃 <b>Список врачей и админов:</b>\n\n🕵️‍♂️ <b>Администрация: </b>\n"
+            # Словари
+            admins: dict = {
+                'count': 0,
+                'message': ""
+            }
+            doctors: dict = {
+                'count': 0,
+                'message': ""
+            }
+            # Перебор администраторов
+            for user in userList:
+                # Если пользователь - администратор
+                if Admin(user).getAdmin()['level'] > 0:
+                    # Прибавляем иттератор
+                    admins['count'] += 1
+                    # Если есть префикс
+                    if Admin(user).getAdmin()['prefix'] != "undefined":
+                        # Вносим в список
+                        admins['message'] += (f"{admins['count']}. {user.get()['username']} "
+                                              f"[{Admin(user).getAdmin()['prefix']}]\n")
+                    else:
+                        # Вносим в список
+                        admins['message'] += f"{admins['count']}. {user.get()['username']}\n"
+                # Если пользователь - врач
+                if isinstance(user, Doctor):
+                    # Прибавляем иттератор
+                    doctors['count'] += 1
+                    # Если верифицирован
+                    if user.get()['document'] is not None:
+                        # Если есть номер телефона
+                        if 'phone' in user.get():
+                            # Вносим в список
+                            doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                                                   f"[{user.get()['qualification']}]\n📱 Телефон: "
+                                                   f"{user.get()['phone']}\n")
+                        else:
+                            # Вносим в список
+                            doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                                                   f"[{user.get()['qualification']}]\n")
+                    else:
+                        # Если есть номер телефона
+                        if 'phone' in user.get():
+                            # Вносим в список
+                            doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                                                   f"[{user.get()['qualification']}]\n📱 Телефон: "
+                                                   f"{user.get()['phone']}\n")
+                        else:
+                            # Вносим в список
+                            doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                                                   f"[{user.get()['qualification']}]\n")
+            # Прибавляем сообщения
+            msg += f"{admins['message']}\n👨‍⚕️ <b>Врачи:</b>\n{doctors['message']}"
+            # Отправляем сообщение
+            sendMessage(msg, getUser(message.from_user.id))
+    else:
+        # Отправляем сообщение
+        sendMessage('😥 У нас ещё нет пользователей...', getUser(message.from_user.id))
 
 
 # Холдер команды админа

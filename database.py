@@ -855,7 +855,7 @@ class Admin:
 # Получение случайного врача
 def getRandomDoctor() -> Union[Doctor, type(None)]:
     # Выполняем запрос
-    doctor: Union[tuple, type(None)] = choice(database.execute('SELECT * FROM doctors'))
+    doctor: Union[tuple, type(None)] = choice(database.execute('SELECT * FROM doctors').fetchall())
     # Если есть результат
     if doctor is not None:
         # Возвращаем результат
@@ -864,10 +864,33 @@ def getRandomDoctor() -> Union[Doctor, type(None)]:
     return None
 
 
+# Получение списка пользователей
+def getAllUserList() -> List[Union[Patient, Doctor]]:
+    # Результат
+    result: List[Union[Patient, Doctor]] = []
+    # Получаем списки
+    doctors: Union[tuple, type(None)] = database.execute('SELECT * FROM doctors').fetchall()
+    patients: Union[tuple, type(None)] = database.execute('SELECT * FROM patients').fetchall()
+    # Проверка типов
+    if doctors is not None:
+        # Иттерация по списку
+        for doctor in doctors:
+            # Добавляем результат
+            result.append(Doctor(doctor[0]))
+    # Проверка типов
+    if patients is not None:
+        # Иттерация по списку
+        for patient in patients:
+            # Добавляем результат
+            result.append(Patient(patient[0]))
+    # Возвращаем результат
+    return result
+
+
 # Получение случайного пациента
 def getRandomPatient() -> Union[Patient, type(None)]:
     # Выполняем запрос
-    patient: Union[tuple, type(None)] = choice(database.execute('SELECT * FROM patients'))
+    patient: Union[tuple, type(None)] = choice(database.execute('SELECT * FROM patients').fetchall())
     # Если есть результат
     if patient is not None:
         # Возвращаем результат
