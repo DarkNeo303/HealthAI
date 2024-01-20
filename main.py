@@ -52,6 +52,12 @@ def adminHandler(message: dict, step: int = 0):
     for case in Switch(step):
         if case(0):
             pass
+        elif case(1):
+            pass
+        elif case(2):
+            pass
+        elif case(3):
+            pass
 
 
 '''
@@ -130,7 +136,7 @@ def callCheckAdmin(message: dict):
                 sendMessage('🤔 Введите имя пользователя или его ID для назначения в админы',
                             message['user'])
                 # Передаём параметр в функцию
-                adminHandler(message)
+                adminHandler(message, 1)
             else:
                 # Отсылаем сообщение
                 sendMessage('☝ Ваш ранг недостаточен!', message['user'])
@@ -141,7 +147,7 @@ def callCheckAdmin(message: dict):
                 sendMessage('🤔 Введите имя пользователя или его ID для удаления из админов',
                             message['user'])
                 # Передаём параметр в функцию
-                adminHandler(message, 1)
+                adminHandler(message, 2)
             else:
                 # Отсылаем сообщение
                 sendMessage('☝ Ваш ранг недостаточен!', message['user'])
@@ -152,7 +158,7 @@ def callCheckAdmin(message: dict):
                 sendMessage('🤔 Введите имя пользователя или его ID для удаления из врачей',
                             message['user'])
                 # Передаём параметр в функцию
-                adminHandler(message, 2)
+                adminHandler(message, 3)
             else:
                 # Отсылаем сообщение
                 sendMessage('☝ Ваш ранг недостаточен!', message['user'])
