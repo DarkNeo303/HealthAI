@@ -293,14 +293,29 @@ class Doctor:
                 raise TypeError("The 'patients' field requires the 'list' type!")
         elif types == self.Types.subordinates:
             # Проверка параметра
-            if isinstance(value, list):
-                # Обновляем поле
-                self.__subordinates = value
-                # Список врачей
+            if isinstance(value, Doctor):
+                # Существует
+                exsist: Union[Doctor, bool] = False
+                # Подчинённые
                 subordinates: List[int] = []
-                # Перебор врачей
-                for doctor in value:
-                    # Вносим врача
+                # Иттерация по врачам
+                for doctor in self.__subordinates:
+                    # Если врач существует
+                    if doctor.get()['id'] == value.get()['id']:
+                        # Существует
+                        exsist = doctor
+                        # Ломаем иттерацию
+                        break
+                # Если пользователя не существует
+                if not exsist:
+                    # Обновляем поле
+                    self.__subordinates.append(value)
+                else:
+                    # Обновляем поле
+                    self.__subordinates.remove(exsist)
+                # Иттерация по врачам
+                for doctor in self.__subordinates:
+                    # Вносим ID в список
                     subordinates.append(doctor.get()['id'])
                 # Обновляем БД
                 result = database.execute(f'UPDATE doctors SET subordinates="{json.dumps(subordinates)}" '

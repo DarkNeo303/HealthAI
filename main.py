@@ -414,9 +414,16 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
 
 # Обработчик Inline запросов
 @bot.callback_query_handler(func=lambda call: True)
-def callCheck(call: telebot.types.CallbackQuery):
-    # Получаем пользователя
-    user: Union[Patient, Doctor, type(None)] = getUser(int(call.data.split('|')[1]))
+def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
+    # Указываем значение по умолчанию
+    defaultArgs = defaultArgs or ["sendSelfLink"]
+    # Пользователь
+    user: Union[Patient, Doctor, type(None)] = None
+    try:
+        # Получаем пользователя
+        user = getUser(int(call.data.split('|')[1]))
+    except Exception:
+        pass
     # Если пользователь найден
     if user is not None and user.isExsist():
         # Получаем сообщение
@@ -425,6 +432,18 @@ def callCheck(call: telebot.types.CallbackQuery):
             'message': call.data.split('|')[0],
             'params': call.data.split('|')[:2]
         }
+        # Если получен общий запрос
+        if message['message'] in defaultArgs:
+            # Распознаём callback
+            for case in Switch(message['message']):
+                if case(defaultArgs[0]):
+                    # Отвечаем на сообщение
+                    sendMessage(f'🤝 Ваша ссылка-приглашение:\n\nt.me/{bot.get_me().username}?start='
+                                f'{user.get()["id"]}', message['user'])
+                    # Ломаем цикл
+                    break
+            # Возвращаем значение
+            return None
         # Если пользователь - админ
         if Admin(user).getAdmin() is not None:
             # Передаём параметр
@@ -931,6 +950,10 @@ def profile(message):
             telebot.types.InlineKeyboardButton("💔 Уволить подчинённого",
                                                callback_data=f"doctorKick|{user.get()['id']}")
         )
+        keyboard.add(
+            telebot.types.InlineKeyboardButton("🤝 Скопировать ссылку-приглашение",
+                                               callback_data=f'sendSelfLink|{user.get()['id']}')
+        )
         # Если есть вылеченные
         if user.get()["discharged"] is not None:
             # Если указан телефон
@@ -1233,29 +1256,73 @@ def listCommand(message):
                         if isinstance(user, Doctor):
                             # Прибавляем иттератор
                             doctors['count'] += 1
-                            # Если верифицирован
-                            if user.get()['document'] is not None:
-                                # Если есть номер телефона
-                                if 'phone' in user.get():
-                                    # Вносим в список
-                                    doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
-                                                           f"[{user.get()['qualification']}]\n📱 Телефон: "
-                                                           f"{user.get()['phone']}\n")
+                            # Руководитель
+                            director: Doctor = None
+                            # Если есть руководитель
+                            for item in getAllUserList():
+                                # Если пользователь - врач
+                                if isinstance(item, Doctor):
+                                    # Если у пользователя есть подчинённые
+                                    if item.getSubordinates():
+                                        # Иттерация по подчинённым
+                                        for sub in item.getSubordinates():
+                                            # Если ID совпали
+                                            if sub.get['id'] == user.get()['id']:
+                                                # Устанавливаем руководителя
+                                                director = item
+                            # Если есть руководитель
+                            if director is None:
+                                # Если верифицирован
+                                if user.get()['document'] is not None:
+                                    # Если есть номер телефона
+                                    if 'phone' in user.get():
+                                        # Вносим в список
+                                        doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                                                               f"[{user.get()['qualification']}]\n📱 Телефон: "
+                                                               f"{user.get()['phone']}\n")
+                                    else:
+                                        # Вносим в список
+                                        doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                                                               f"[{user.get()['qualification']}]\n")
                                 else:
-                                    # Вносим в список
-                                    doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
-                                                           f"[{user.get()['qualification']}]\n")
+                                    # Если есть номер телефона
+                                    if 'phone' in user.get():
+                                        # Вносим в список
+                                        doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                                                               f"[{user.get()['qualification']}]\n📱 Телефон: "
+                                                               f"{user.get()['phone']}\n")
+                                    else:
+                                        # Вносим в список
+                                        doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                                                               f"[{user.get()['qualification']}]\n")
                             else:
-                                # Если есть номер телефона
-                                if 'phone' in user.get():
-                                    # Вносим в список
-                                    doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
-                                                           f"[{user.get()['qualification']}]\n📱 Телефон: "
-                                                           f"{user.get()['phone']}\n")
+                                # Если верифицирован
+                                if user.get()['document'] is not None:
+                                    # Если есть номер телефона
+                                    if 'phone' in user.get():
+                                        # Вносим в список
+                                        doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                                                               f"[{user.get()['qualification']}]\n📱 Телефон: "
+                                                               f"{user.get()['phone']}\n👨‍⚕️ Руководитель: "
+                                                               f"{director.get['username']}\n")
+                                    else:
+                                        # Вносим в список
+                                        doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                                                               f"[{user.get()['qualification']}]\n👨‍⚕️ Руководитель: "
+                                                               f"{director.get['username']}\n")
                                 else:
-                                    # Вносим в список
-                                    doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
-                                                           f"[{user.get()['qualification']}]\n")
+                                    # Если есть номер телефона
+                                    if 'phone' in user.get():
+                                        # Вносим в список
+                                        doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                                                               f"[{user.get()['qualification']}]\n📱 Телефон: "
+                                                               f"{user.get()['phone']}\n👨‍⚕️ Руководитель: "
+                                                               f"{director.get['username']}\n")
+                                    else:
+                                        # Вносим в список
+                                        doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                                                               f"[{user.get()['qualification']}]\n👨‍⚕️ Руководитель: "
+                                                               f"{director.get['username']}\n")
                     # Прибавляем сообщения
                     msg += doctors['message']
                     # Отправляем сообщение
@@ -1435,7 +1502,7 @@ def start(message):
         if getUser(message.from_user.id) is not None:
             # Открываем профиль
             profile(message)
-        else:
+        elif getUser(message.from_user.id) is None:
             # Если пользователь регистрируется
             if message.from_user.id in ram.keys() and ram[message.from_user.id]['lang'] is not None:
                 # Отправляем сообщение
@@ -1462,6 +1529,23 @@ def start(message):
                     # Отправляем сообщение
                     sendMessage("Пригласивший Вас не является доктором 😥",
                                 message.chat.id, getUser(message.from_user.id))
+        elif isinstance(getUser(message.from_user.id), Doctor):
+            # Пользователь
+            user: Union[Patient, Doctor] = getUser(int(str(message.text).split()[1]))
+            # Если пользователь с указанным ID - врач
+            if user is not None and isinstance(user, Doctor):
+                # Присоединяем врача к команде
+                user.update(Doctor.Types.subordinates, getUser(message.from_user.id))
+                # Отправляем сообщения
+                sendMessage(f"👨‍⚕️🤝👨‍⚕️ <b>Вы присоединились к команде!</b>\n\nВаш руководитель: "
+                            f"{user.get()['username']}",
+                            message.chat.id, getUser(message.from_user.id))
+                sendMessage(f"👨‍⚕️🤝👨‍⚕️ <b>Сторудник {getUser(message.from_user.id).get()['username']} "
+                            f"присоединился к команде!</b", user)
+            else:
+                # Отправляем сообщение
+                sendMessage("Пригласивший Вас не является доктором 😥",
+                            message.chat.id, getUser(message.from_user.id))
 
 
 # Холдер команды остановки диалога
