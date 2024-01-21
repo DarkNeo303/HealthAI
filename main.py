@@ -73,6 +73,19 @@ def adminHandler(call: telebot.types.Message, message: dict, step: int = 0):
             # Ломаем блок
             break
         elif case(2):
+            # Если админ существует
+            if Admin(message['user']).getAdmin()['level'] > 0:
+                # Если уровень админа соответствует
+                if Admin(getUser(call.text)).getAdmin()['level'] < Admin(message['user']).getAdmin()['level']:
+                    # Удаляем админа
+                    Admin(getUser(call.text)).removeAdmin()
+                    # Информируем пользователей
+                    sendMessage(f'✔ Админ с ID {call.text} снят с должности', message['user'])
+                    sendMessage(f'✔ Вы были сняты с должности админом {message['user'].get()["username"]}',
+                                getUser(call.text))
+            else:
+                # Информируем пользователя
+                sendMessage('❌ Вы не можете снять админа своего ранга или рангом выше!', message['user'])
             # Ломаем блок
             break
         elif case(3):
@@ -226,6 +239,8 @@ def adminHandler(call: telebot.types.Message, message: dict, step: int = 0):
                             reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
+    # Ломаем функцию
+    return None
 
 
 '''

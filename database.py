@@ -837,6 +837,50 @@ class Admin:
         except json.decoder.JSONDecodeError:
             pass
 
+    # Удаление админа
+    def removeAdmin(self) -> bool:
+        # Существует
+        exsist: bool = False
+        # Админ
+        admin: dict = {
+            'id': self.__id,
+            'level': self.__level,
+            'prefix': self.__prefix
+        }
+        try:
+            # Проверка документа
+            with open(os.getenv('ADMINS'), 'r', encoding=os.getenv('CODEC')) as f:
+                # Получаем список
+                data: List[dict] = json.loads(f.read())
+                # Иттерация по списку
+                for admin in data:
+                    # Если админ существует
+                    if admin['id'] == self.__id:
+                        # Возвращаем результат
+                        exsist = True
+            # Если существует
+            if exsist:
+                # Если есть список
+                if data:
+                    # Запись в документ
+                    with open(os.getenv('ADMINS'), 'w+', encoding=os.getenv('CODEC')) as f:
+                        # Читаем документ
+                        document: List[dict] = data
+                        # Вносим нового админа
+                        document.remove(admin)
+                        # Записываем в файл
+                        f.write(json.dumps(document))
+                    # Возвращаем результат
+                    return exsist
+                else:
+                    # Возвращаем результат
+                    return exsist
+            # Возвращаем результат
+            return exsist
+        except Exception:
+            # Возвращаем результат
+            return False
+
     # Получение пользователя
     def getUser(self) -> Union[Patient, Doctor]:
         return self.__user
