@@ -49,6 +49,21 @@ def doctorHandler(call: telebot.types.Message, message: dict, step: int = 0):
         if case(0):
             # Ломаем блок
             break
+        elif case(1):
+            # Ломаем блок
+            break
+        elif case(2):
+            # Ломаем блок
+            break
+        elif case(3):
+            # Ломаем блок
+            break
+        elif case(4):
+            # Ломаем блок
+            break
+        elif case(5):
+            # Ломаем блок
+            break
 
 
 # Обработчик функций пациента
@@ -56,6 +71,15 @@ def patientHandler(call: telebot.types.Message, message: dict, step: int = 0):
     # Иттерация по вариантам
     for case in Switch(step):
         if case(0):
+            # Ломаем блок
+            break
+        elif case(1):
+            # Ломаем блок
+            break
+        elif case(2):
+            # Ломаем блок
+            break
+        elif case(3):
             # Ломаем блок
             break
 
