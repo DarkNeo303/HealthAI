@@ -1421,6 +1421,8 @@ def stop(message: telebot.types.Message):
                             getUser(message.from_user.id))
         # Удаляем информацию из оперативной памяти
         ram.pop(message.from_user.id)
+        # Прерываем функцию
+        return None
     else:
         # Ключ на удаление
         removeKey: Union[str, int] = 0
@@ -1441,8 +1443,13 @@ def stop(message: telebot.types.Message):
                                     getUser(message.from_user.id))
                     # Запоминаем ключ
                     removeKey = key
-        # Удаляем информацию из оперативной памяти
-        ram.pop(removeKey)
+        try:
+            # Удаляем информацию из оперативной памяти
+            ram.pop(removeKey)
+        except Exception:
+            pass
+    # Посылаем сообщение
+    sendMessage('☝ Вы не находитесь в диалоге!', getUser(message.from_user.id))
 
 
 # Принятие сообщений
