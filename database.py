@@ -61,6 +61,7 @@ connection.commit()
 # Операции
 class Operations(Enum):
     MakeAdmin = 0
+    Contact = 1
 
 
 # Тип данных таблицы

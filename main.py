@@ -64,6 +64,12 @@ def adminHandler(call: telebot.types.Message, message: dict, step: int = 0):
             # Ломаем блок
             break
         elif case(1):
+            # Создаём контакт
+            debugValue: bool = makeContact(call, message)
+            # Если режим отладки
+            if stringToBool(os.getenv('DEBUG')):
+                # Выводим информацию
+                print(f'Chat started with {call.text} and {message["user"].get()["id"]} with result: {debugValue}')
             # Ломаем блок
             break
         elif case(2):
@@ -637,7 +643,7 @@ def registerPatient(message, step: int = 0, invited: Doctor = None):
             # Клавиатура
             keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
             keyboard.add(telebot.types.KeyboardButton(text="👨 Мужской"),
-                         telebot.types.KeyboardButton(text="👩 Мужской"))
+                         telebot.types.KeyboardButton(text="👩 Женский"))
             # Отправляем сообщение
             sendMessage('🤔 Укажите пол', message.chat.id, ram[message.from_user.id]['lang'], reply=keyboard)
             # Регистрируем следующее событие
@@ -1055,46 +1061,84 @@ def profile(message):
 # Холдер фотографий
 @bot.message_handler(content_types=['photo'])
 def photoHandler(message):
-    # Если пользователь в оперативной памяти
-    if message.from_user.id in ram.keys() and ram[message.from_user.id]['document'] is None:
-        # Если необходима верефикация
-        if stringToBool(os.getenv('VERIFY')):
-            # Отправляем сообщение
-            sendMessage("👌 Сканирование документа...", message.chat.id, ram[message.from_user.id]['lang'])
-            # Проверка фотографии
-            if ai.checkDocument(ai.ImageRecognize(bot.download_file(bot.get_file(
-                    message.photo[-1].file_id).file_path)).textRecognize()):
-                # Запоминаем фото
-                ram[message.from_user.id]['document'] = bot.download_file(
-                    bot.get_file(message.photo[-1].file_id).file_path)
+    try:
+        # Если пользователь в оперативной памяти
+        if message.from_user.id in ram.keys() and ram[message.from_user.id]['document'] is None:
+            # Если необходима верефикация
+            if stringToBool(os.getenv('VERIFY')):
+                # Отправляем сообщение
+                sendMessage("👌 Сканирование документа...", message.chat.id, ram[message.from_user.id]['lang'])
+                # Проверка фотографии
+                if ai.checkDocument(ai.ImageRecognize(bot.download_file(bot.get_file(
+                        message.photo[-1].file_id).file_path)).textRecognize()):
+                    # Запоминаем фото
+                    ram[message.from_user.id]['document'] = bot.download_file(
+                        bot.get_file(message.photo[-1].file_id).file_path)
+                    try:
+                        # Создаём аккаунт
+                        Doctor(message.from_user.id).create(ram[message.from_user.id]['name'],
+                                                            ram[message.from_user.id]['qualification'],
+                                                            ram[message.from_user.id]['document'],
+                                                            ram[message.from_user.id]['lang'],
+                                                            ram[message.from_user.id]['phone'])
+                        # Отправляем сообщение
+                        sendMessage('✔ Аккаунт успешно зарегистрирован и верифицирован!',
+                                    message.chat.id, ram[message.from_user.id]['lang'])
+                    except Exception as e:
+                        # Отправляем сообщение
+                        sendMessage(f'❌ Ошибка при регистрации!\n\n💬 Код: {e}',
+                                    message.chat.id, ram[message.from_user.id]['lang'])
+                    # Удаляем пользователя
+                    ram.pop(message.from_user.id)
+                else:
+                    # Клавиатура
+                    keyboard = telebot.types.InlineKeyboardMarkup()
+                    keyboard.add(telebot.types.InlineKeyboardButton(text="💬 Обратная связь", url=os.getenv('ADMIN')))
+                    # Отправляем сообщение
+                    sendMessage('❌ Отказано в регистрации!\n\n☝ Если Вы считаете результат работы сети'
+                                'некорректным, обратитесь за помощью к модерации или разработчикам',
+                                message.chat.id, ram[message.from_user.id]['lang'], reply=keyboard)
+                    # Отправляем сообщение
+                    sendMessage("📑 Подтвердите квалификацию документом.\nДокумент будет проверен нейросетью. "
+                                "В случае ошибки сообщите разработчику бота", message.chat.id,
+                                ram[message.from_user.id]['lang'])
+    except Exception:
+        # Если пользователь находиться в контакте
+        if message.from_user.id in ram or getUser(message.from_user.id).get()['username'] in ram:
+            try:
+                # Пересылаем сообщение
+                bot.forward_message(getUser(ram[message.from_user.id]['contactInit']).get()['id'], message.chat.id,
+                                    message.message_id)
+            except Exception:
                 try:
-                    # Создаём аккаунт
-                    Doctor(message.from_user.id).create(ram[message.from_user.id]['name'],
-                                                        ram[message.from_user.id]['qualification'],
-                                                        ram[message.from_user.id]['document'],
-                                                        ram[message.from_user.id]['lang'],
-                                                        ram[message.from_user.id]['phone'])
-                    # Отправляем сообщение
-                    sendMessage('✔ Аккаунт успешно зарегистрирован и верифицирован!',
-                                message.chat.id, ram[message.from_user.id]['lang'])
-                except Exception as e:
-                    # Отправляем сообщение
-                    sendMessage(f'❌ Ошибка при регистрации!\n\n💬 Код: {e}',
-                                message.chat.id, ram[message.from_user.id]['lang'])
-                # Удаляем пользователя
-                ram.pop(message.from_user.id)
-            else:
-                # Клавиатура
-                keyboard = telebot.types.InlineKeyboardMarkup()
-                keyboard.add(telebot.types.InlineKeyboardButton(text="💬 Обратная связь", url=os.getenv('ADMIN')))
-                # Отправляем сообщение
-                sendMessage('❌ Отказано в регистрации!\n\n☝ Если Вы считаете результат работы сети'
-                            'некорректным, обратитесь за помощью к модерации или разработчикам',
-                            message.chat.id, ram[message.from_user.id]['lang'], reply=keyboard)
-                # Отправляем сообщение
-                sendMessage("📑 Подтвердите квалификацию документом.\nДокумент будет проверен нейросетью. "
-                            "В случае ошибки сообщите разработчику бота", message.chat.id,
-                            ram[message.from_user.id]['lang'])
+                    # Получаем имя
+                    name: str = getUser(message.from_user.id).get()['username']
+                    # Пересылаем сообщение
+                    bot.forward_message(getUser(ram[name]['contactInit']).get()['id'], message.chat.id,
+                                        message.message_id)
+                except Exception:
+                    # Выдаём ошибку
+                    sendMessage('❌ Ошибка доставки сообщения!\nПрекратите диалог командой /stop',
+                                message.from_user.id)
+        else:
+            # Иттерация по оперативной памяти
+            for key in ram:
+                # Если тип операции системный и содержит ID инициализировавшего мессенджер
+                if 'type' in ram[key] and ram[key]['type'] == 'system' and 'contactInit' in ram[key]:
+                    # Если ID совпали
+                    if (ram[key]['contactInit'] == message.from_user.id or
+                            ram[key]['contactInit'] == getUser(message.from_user.id).get()['username']):
+                        try:
+                            # Пересылаем сообщение
+                            bot.forward_message(getUser(key).get()['id'], message.chat.id, message.message_id)
+                        except Exception:
+                            try:
+                                # Пересылаем сообщение
+                                bot.forward_message(getUser(int(key)).get()['id'], message.chat.id, message.message_id)
+                            except Exception:
+                                # Выдаём ошибку
+                                sendMessage('❌ Ошибка доставки сообщения!\nПрекратите диалог командой /stop',
+                                            message.from_user.id)
 
 
 # Холдер команды помощи
@@ -1357,11 +1401,141 @@ def start(message):
                                 message.chat.id, getUser(message.from_user.id))
 
 
+# Холдер команды остановки диалога
+@bot.message_handler(commands=['stop'])
+def stop(message: telebot.types.Message):
+    # Если пользователь находиться в контакте
+    if message.from_user.id in ram or getUser(message.from_user.id).get()['username'] in ram:
+        try:
+            # Пересылаем сообщение
+            sendMessage('😥 Собеседник прекратил диалог',
+                        getUser(ram[message.from_user.id]['contactInit']), getUser(message.from_user.id))
+        except Exception:
+            try:
+                # Пересылаем сообщение
+                sendMessage('😥 Собеседник прекратил диалог',
+                            getUser(ram[message.from_user.id]['contactInit']), getUser(message.from_user.id))
+            except Exception:
+                # Посылаем сообщение
+                sendMessage('❌ Диалог прекращён с ошибкой.\nПользователя не существует',
+                            getUser(message.from_user.id))
+        # Удаляем информацию из оперативной памяти
+        ram.pop(message.from_user.id)
+    else:
+        # Ключ на удаление
+        removeKey: Union[str, int] = 0
+        # Иттерация по оперативной памяти
+        for key in ram:
+            # Если тип операции системный и содержит ID инициализировавшего мессенджер
+            if 'type' in ram[key] and ram[key]['type'] == 'system' and 'contactInit' in ram[key]:
+                # Если ID совпали
+                if (ram[key]['contactInit'] == message.from_user.id or
+                        ram[key]['contactInit'] == getUser(message.from_user.id).get()['username']):
+                    try:
+                        # Пересылаем сообщение
+                        sendMessage('😥 Собеседник прекратил диалог', getUser(key),
+                                    getUser(ram[key]['contactInit']))
+                    except Exception:
+                        # Посылаем сообщение
+                        sendMessage('❌ Диалог прекращён с ошибкой.\nПользователя не существует',
+                                    getUser(message.from_user.id))
+                    # Запоминаем ключ
+                    removeKey = key
+        # Удаляем информацию из оперативной памяти
+        ram.pop(removeKey)
+
+
+# Принятие сообщений
+@bot.message_handler(content_types=["text", "audio", "document", "sticker", "video", "video_note", "voice"])
+def getMessage(message: telebot.types.Message):
+    # Если пользователь находиться в контакте
+    if message.from_user.id in ram or getUser(message.from_user.id).get()['username'] in ram:
+        try:
+            # Пересылаем сообщение
+            bot.forward_message(getUser(ram[message.from_user.id]['contactInit']).get()['id'], message.chat.id,
+                                message.message_id)
+        except Exception:
+            try:
+                # Получаем имя
+                name: str = getUser(message.from_user.id).get()['username']
+                # Пересылаем сообщение
+                bot.forward_message(getUser(ram[name]['contactInit']).get()['id'], message.chat.id,
+                                    message.message_id)
+            except Exception:
+                # Выдаём ошибку
+                sendMessage('❌ Ошибка доставки сообщения!\nПрекратите диалог командой /stop',
+                            message.from_user.id)
+    # Иттерация по оперативной памяти
+    for key in ram:
+        # Если тип операции системный и содержит ID инициализировавшего мессенджер
+        if 'type' in ram[key] and ram[key]['type'] == 'system' and 'contactInit' in ram[key]:
+            # Если ID совпали
+            if (ram[key]['contactInit'] == message.from_user.id or
+                    ram[key]['contactInit'] == getUser(message.from_user.id).get()['username']):
+                try:
+                    # Пересылаем сообщение
+                    bot.forward_message(getUser(key).get()['id'], message.chat.id, message.message_id)
+                except Exception:
+                    # Выдаём ошибку
+                    sendMessage('❌ Ошибка доставки сообщения!\nПрекратите диалог командой /stop',
+                                message.from_user.id)
+
+
 '''
 ======================================
           СИСТЕМНЫЕ ФУНКЦИИ
 ======================================
 '''
+
+
+# Создание чата
+def makeContact(call: telebot.types.Message, message: dict) -> bool:
+    try:
+        # Если такой пользователь существует
+        if getUser(int(call.text)) is not None:
+            # Устанавливаем связь
+            ram[int(call.text)] = {'type': 'system'}
+            ram[int(call.text)]['operation'] = Operations.Contact
+            ram[int(call.text)]['contactInit'] = call.from_user.id
+            # Отсылаем сообщение
+            sendMessage('👌 Контакт установлен!\nВаши сообщения будут переадресовываться контакту '
+                        'до команды /stop',
+                        message['user'])
+            # Отсылаем сообщение
+            sendMessage(f'👌 Контакт c пользователем {message['user'].get()['username']} '
+                        f'установлен!\nВаши сообщения будут переадресовываться контакту до команды /stop',
+                        getUser(int(call.text)))
+            # Возвращаем результат
+            return True
+        else:
+            # Отсылаем сообщение
+            sendMessage(f'❌ Контакт не установлен!\nПользователь с ID {call.text} не найден',
+                        message['user'])
+            # Возвращаем результат
+            return False
+    except Exception:
+        # Если такой пользователь существует
+        if getUser(call.text) is not None:
+            # Устанавливаем связь
+            ram[call.text] = {'type': 'system'}
+            ram[call.text]['operation'] = Operations.Contact
+            ram[call.text]['contactInit'] = call.from_user.id
+            # Отсылаем сообщение
+            sendMessage('👌 Контакт установлен!\nВаши сообщения будут переадресовываться контакту '
+                        'до команды /stop',
+                        message['user'])
+            # Отсылаем сообщение
+            sendMessage(f'👌 Контакт c пользователем {message['user'].get()['username']} '
+                        f'установлен!\nВаши сообщения будут переадресовываться контакту до команды /stop',
+                        getUser(call.text))
+            # Возвращаем результат
+            return True
+        else:
+            # Отсылаем сообщение
+            sendMessage(f'❌ Контакт не установлен!\nПользователь с ID {call.text} не найден',
+                        message['user'])
+            # Возвращаем результат
+            return False
 
 
 # Очистка ОЗУ
