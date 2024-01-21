@@ -33,6 +33,11 @@ bot = telebot.TeleBot(os.getenv("TOKEN"))
 cancel = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
 cancel.add(telebot.types.KeyboardButton(text="❌ Отменить"))
 
+# Клавиатура согласия
+apply = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+apply.add(telebot.types.KeyboardButton(text="✔ Подтвердить"),
+          telebot.types.KeyboardButton(text="❌ Отменить"))
+
 '''
 ======================================
         ОБРАБОТЧИКИ ОТКЛИКОВ    
@@ -79,6 +84,41 @@ def patientHandler(call: telebot.types.Message, message: dict, step: int = 0):
             # Ломаем блок
             break
         elif case(1):
+            # Если запрос подтверждён
+            if 'подтвердить' in call.text.lower():
+                # Врачи
+                doctors: List[Doctor] = []
+                # Иттерация по врачам
+                for doctor in getAllUserList():
+                    # Если пользователь - врач
+                    if isinstance(doctor, Doctor):
+                        # Если есть пациенты
+                        if doctor.getPatients():
+                            # Иттерация по пациентам
+                            for patient in doctor.getPatients():
+                                # Если ID совпали
+                                if message['user'].get()['id'] == patient.get()['id']:
+                                    # Добавляем врача
+                                    doctors.append(doctor)
+                                    # Делаем рассылку
+                                    sendMessage(f'🎉 Пациент {message["user"].get()["username"]} выписался'
+                                                f'по собственному желанию!', doctor)
+                # Иттерация по врачам
+                for doctor in doctors:
+                    # Удаляем пациента
+                    doctor.update(Doctor.Types.patients, message['user'])
+                # Удаляем пациента из системы
+                message['user'].extract(doctors)
+                # Информируем пользователя
+                sendMessage('✔ Вы выписались!', message['user'], reply=telebot.types.ReplyKeyboardRemove())
+            elif 'отменить' in call.text.lower():
+                # Информируем пользователя
+                sendMessage('❌ Выписка отменена', message['user'], reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                # Информируем пользователя
+                sendMessage('😐 Результат не соответствует ожиданиям.\nПовторите попытку', message['user'])
+                # Регистрируем следующее событие
+                bot.register_next_step_handler(call, patientHandler, message, 1)
             # Ломаем блок
             break
         elif case(2):
@@ -397,6 +437,12 @@ def callCheckPatient(call: telebot.types.Message, message: dict):
             # Ломаем блок
             break
         elif case('patientExtract'):
+            # Отправляем сообщение
+            sendMessage('❗ <b>Внимание!</b>\n\nВрачи и администрация площадки не несут ответственности'
+                        'за ваши решения.\nПодтвердить выписку?',
+                        message['user'], reply=apply)
+            # Регистрируем событие
+            bot.register_next_step_handler(call, patientHandler, message, 1)
             # Ломаем блок
             break
         elif case('patientDoctorKick'):
@@ -1687,37 +1733,39 @@ def stop(message: telebot.types.Message):
 # Принятие сообщений
 @bot.message_handler(content_types=["text", "audio", "document", "sticker", "video", "video_note", "voice"])
 def getMessage(message: telebot.types.Message):
-    # Если пользователь находиться в контакте
-    if message.from_user.id in ram or getUser(message.from_user.id).get()['username'] in ram:
-        try:
-            # Пересылаем сообщение
-            bot.forward_message(getUser(ram[message.from_user.id]['contactInit']).get()['id'], message.chat.id,
-                                message.message_id)
-        except Exception:
+    # Если пользователь существует
+    if getUser(message.from_user.id) is not None:
+        # Если пользователь находиться в контакте
+        if message.from_user.id in ram or getUser(message.from_user.id).get()['username'] in ram:
             try:
-                # Получаем имя
-                name: str = getUser(message.from_user.id).get()['username']
                 # Пересылаем сообщение
-                bot.forward_message(getUser(ram[name]['contactInit']).get()['id'], message.chat.id,
+                bot.forward_message(getUser(ram[message.from_user.id]['contactInit']).get()['id'], message.chat.id,
                                     message.message_id)
             except Exception:
-                # Выдаём ошибку
-                sendMessage('❌ Ошибка доставки сообщения!\nПрекратите диалог командой /stop',
-                            message.from_user.id)
-    # Иттерация по оперативной памяти
-    for key in ram:
-        # Если тип операции системный и содержит ID инициализировавшего мессенджер
-        if 'type' in ram[key] and ram[key]['type'] == 'system' and 'contactInit' in ram[key]:
-            # Если ID совпали
-            if (ram[key]['contactInit'] == message.from_user.id or
-                    ram[key]['contactInit'] == getUser(message.from_user.id).get()['username']):
                 try:
+                    # Получаем имя
+                    name: str = getUser(message.from_user.id).get()['username']
                     # Пересылаем сообщение
-                    bot.forward_message(getUser(key).get()['id'], message.chat.id, message.message_id)
+                    bot.forward_message(getUser(ram[name]['contactInit']).get()['id'], message.chat.id,
+                                        message.message_id)
                 except Exception:
                     # Выдаём ошибку
                     sendMessage('❌ Ошибка доставки сообщения!\nПрекратите диалог командой /stop',
                                 message.from_user.id)
+        # Иттерация по оперативной памяти
+        for key in ram:
+            # Если тип операции системный и содержит ID инициализировавшего мессенджер
+            if 'type' in ram[key] and ram[key]['type'] == 'system' and 'contactInit' in ram[key]:
+                # Если ID совпали
+                if (ram[key]['contactInit'] == message.from_user.id or
+                        ram[key]['contactInit'] == getUser(message.from_user.id).get()['username']):
+                    try:
+                        # Пересылаем сообщение
+                        bot.forward_message(getUser(key).get()['id'], message.chat.id, message.message_id)
+                    except Exception:
+                        # Выдаём ошибку
+                        sendMessage('❌ Ошибка доставки сообщения!\nПрекратите диалог командой /stop',
+                                    message.from_user.id)
 
 
 '''

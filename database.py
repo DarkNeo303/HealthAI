@@ -381,10 +381,15 @@ class Doctor:
     def __add__(self, other):
         # Если число
         if isinstance(other, int):
-            # Обновляем БД
-            count: int = int(database.execute(f'SELECT * FROM doctors WHERE id={self.__id}').fetchone()[4])
-            database.execute(f'UPDATE doctors SET discharged={count + other} WHERE id={self.__id}')
-            connection.commit()
+            try:
+                # Обновляем БД
+                count: int = int(database.execute(f'SELECT * FROM doctors WHERE id={self.__id}').fetchone()[4])
+                database.execute(f'UPDATE doctors SET discharged={count + other} WHERE id={self.__id}')
+                connection.commit()
+            except TypeError:
+                # Обновляем БД
+                database.execute(f'UPDATE doctors SET discharged=1 WHERE id={self.__id}')
+                connection.commit()
         else:
             # Выбрасываем ошибку
             raise TypeError("Required 'int' type!")
@@ -393,10 +398,14 @@ class Doctor:
     def __sub__(self, other):
         # Если число
         if isinstance(other, int):
-            # Обновляем БД
-            count: int = int(database.execute(f'SELECT * FROM doctors WHERE id={self.__id}').fetchone()[4])
-            database.execute(f'UPDATE doctors SET discharged={count - other} WHERE id={self.__id}')
-            connection.commit()
+            try:
+                # Обновляем БД
+                count: int = int(database.execute(f'SELECT * FROM doctors WHERE id={self.__id}').fetchone()[4])
+                database.execute(f'UPDATE doctors SET discharged={count - other} WHERE id={self.__id}')
+                connection.commit()
+            except TypeError:
+                # Выбрасываем ошибку
+                raise TypeError(f"Count of doctor {self.__id} is less then 1")
         else:
             # Выбрасываем ошибку
             raise TypeError("Required 'int' type!")
@@ -717,12 +726,22 @@ class Patient:
         return result
 
     # Выписка пациента
-    def extract(self, doctor: Doctor) -> sqlite3.Cursor:
-        # Выписка
-        doctor + 1
-        # Удаляем запись о пациенте
-        result = database.execute(f'DELETE FROM patients WHERE id={self.__id}')
-        connection.commit()
+    def extract(self, doctors: List[Doctor]) -> List[sqlite3.Cursor]:
+        # Результат
+        result: List[sqlite3.Cursor] = []
+        # Если список не пустой
+        if doctors:
+            # Иттерация по списку
+            for doctor in doctors:
+                # Выписка
+                doctor + 1
+                # Удаляем запись о пациенте
+                result.append(database.execute(f'DELETE FROM patients WHERE id={self.__id}'))
+                connection.commit()
+        else:
+            # Удаляем запись о пациенте
+            result.append(database.execute(f'DELETE FROM patients WHERE id={self.__id}'))
+            connection.commit()
         # Возвращаем результат
         return result
 
