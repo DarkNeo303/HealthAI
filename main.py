@@ -446,6 +446,38 @@ def callCheckPatient(call: telebot.types.Message, message: dict):
             # Ломаем блок
             break
         elif case('patientDoctorKick'):
+            # Клавиатура
+            keyboard = telebot.types.InlineKeyboardMarkup()
+            # Врачи
+            doctors: List[Doctor] = []
+            # Иттерация по врачам
+            for user in getAllUserList():
+                # Если лечащий врач и список пациентов не пуст
+                if isinstance(user, Doctor) and user.getPatients():
+                    # Иттерация по пациентам
+                    for patient in user.getPatients():
+                        # Если ID совпали
+                        if patient.get()['id'] == message['user'].get()['id']:
+                            # Вносим врача
+                            doctors.append(user)
+            # Если список не пуст
+            if doctors:
+                # Иттерация по врачам
+                for doctor in doctors:
+                    # Вносим врача в клавиатуру
+                    keyboard.add(
+                        telebot.types.InlineKeyboardButton(f"👨‍⚕️ {doctor.get()['username']} "
+                                                           f"[{doctor.get()['qualification']}]",
+                                                           callback_data=f"kickPatientDoctor|"
+                                                                         f"{message['user'].get()['id']}|"
+                                                                         f"{doctor.get()['id']}"))
+            else:
+                # Отправляем сообщение
+                sendMessage('❣ Вы не состоите на врачебном учёте', message['user'])
+                # Ломаем блок
+                break
+            # Отправляем сообщение
+            sendMessage('👨‍⚕️ <b>Ваши лечащие врачи:</b>', message['user'], reply=keyboard)
             # Ломаем блок
             break
         elif case():
@@ -522,6 +554,8 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
 # Обработчик Inline запросов
 @bot.callback_query_handler(func=lambda call: True)
 def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
+    # Удаляем сообщение
+    bot.delete_message(call.message.chat.id, call.message.id)
     # Указываем значение по умолчанию
     defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo"]
     # Пользователь
