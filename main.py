@@ -23,6 +23,18 @@ ai.initAi()
 load_dotenv()
 bot = telebot.TeleBot(os.getenv("TOKEN"))
 
+
+'''
+======================================
+          ШАБЛОНЫ КЛАВИАТУР    
+======================================
+'''
+
+# Клавиатура отмены
+cancel = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+cancel.add(telebot.types.KeyboardButton(text="❌ Отменить"))
+
+
 '''
 ======================================
         ОБРАБОТЧИКИ ОТКЛИКОВ    
@@ -73,22 +85,71 @@ def adminHandler(call: telebot.types.Message, message: dict, step: int = 0):
             # Ломаем блок
             break
         elif case(2):
-            # Если админ существует
-            if Admin(message['user']).getAdmin()['level'] > 0:
-                # Если уровень админа соответствует
-                if Admin(getUser(call.text)).getAdmin()['level'] < Admin(message['user']).getAdmin()['level']:
-                    # Удаляем админа
-                    Admin(getUser(call.text)).removeAdmin()
-                    # Информируем пользователей
-                    sendMessage(f'✔ Админ с ID {call.text} снят с должности', message['user'])
-                    sendMessage(f'✔ Вы были сняты с должности админом {message['user'].get()["username"]}',
-                                getUser(call.text))
+            # Если не нажата отмена
+            if 'отменить' not in call.text.lower():
+                # Если админ существует
+                if Admin(message['user']).getAdmin()['level'] > 0:
+                    try:
+                        # Если уровень админа соответствует
+                        if Admin(getUser(call.text)).getAdmin()['level'] < Admin(message['user']).getAdmin()['level']:
+                            # Удаляем админа
+                            Admin(getUser(call.text)).removeAdmin()
+                            # Информируем пользователей
+                            sendMessage(f'✔ Админ с ID {call.text} снят с должности', message['user'],
+                                        reply=telebot.types.ReplyKeyboardRemove())
+                            sendMessage(f'❌ Вы были сняты с должности админом '
+                                        f'{message['user'].get()["username"]}',
+                                        getUser(call.text))
+                    except AttributeError:
+                        # Если уровень админа соответствует
+                        if (Admin(getUser(int(call.text))).getAdmin()['level'] <
+                                Admin(message['user']).getAdmin()['level']):
+                            # Удаляем админа
+                            Admin(getUser(int(call.text))).removeAdmin()
+                            # Информируем пользователей
+                            sendMessage(f'✔ Админ с ID {call.text} снят с должности', message['user'],
+                                        reply=telebot.types.ReplyKeyboardRemove())
+                            sendMessage(f'❌ Вы были сняты с должности админом '
+                                        f'{message['user'].get()["username"]}',
+                                        getUser(int(call.text)))
+                else:
+                    # Информируем пользователя
+                    sendMessage('❌ Вы не можете снять админа своего ранга или рангом выше!', message['user'])
             else:
                 # Информируем пользователя
-                sendMessage('❌ Вы не можете снять админа своего ранга или рангом выше!', message['user'])
+                sendMessage('✔ Операция отменена', message['user'], reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
         elif case(3):
+            # Если не нажата отмена
+            if 'отменить' not in call.text.lower():
+                # Если такой пользователь существует и он - врач
+                if isinstance(getUser(call.text), Doctor):
+                    # Удаляем запись
+                    getUser(call.text).remove()
+                    # Информируем пользователей
+                    sendMessage(f'✔ Пользователь с ID {call.text} был снят с должности!', message['user'])
+                    sendMessage(f'❌ Вы были сняты с должности администратором '
+                                f'{message['user'].get()["username"]}!\nЕсли Вы считаете такую меру не справедливой,'
+                                f' обратитесь к <a href="t.me/{os.getenv("ADMIN").replace("@", "")}">'
+                                f'старшему администратору</a>', getUser(call.text), message['user'])
+                elif isinstance(getUser(int(call.text)), Doctor):
+                    # Удаляем запись
+                    getUser(int(call.text)).remove()
+                    # Информируем пользователей
+                    sendMessage(f'✔ Пользователь с ID {call.text} был снят с должности!', message['user'],
+                                reply=telebot.types.ReplyKeyboardRemove())
+                    sendMessage(f'❌ Вы были сняты с должности администратором '
+                                f'{message['user'].get()["username"]}!\nЕсли Вы считаете такую меру не справедливой,'
+                                f' обратитесь к <a href="t.me/{os.getenv("ADMIN").replace("@", "")}">'
+                                f'старшему администратору</a>', getUser(int(call.text)), message['user'])
+                else:
+                    # Информируем пользователя
+                    sendMessage('❌ Вы не можете снять пользователя, так как он не является врачом!',
+                                message['user'], reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                # Информируем пользователя
+                sendMessage('✔ Операция отменена', message['user'], reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
         elif case(4):
@@ -119,10 +180,10 @@ def adminHandler(call: telebot.types.Message, message: dict, step: int = 0):
                 else:
                     # Отсылаем сообщение
                     sendMessage('☝ Ответ не является допустимым числом.\nВаш уровень ниже или равен '
-                                'введённому!', message['user'])
+                                'введённому!', message['user'], reply=telebot.types.ReplyKeyboardRemove())
                     # Отсылаем сообщение
                     sendMessage('🤔 Отправьте желаемый уровень.\nУровень не должен привышать ваш собственный!',
-                                message['user'])
+                                message['user'], reply=telebot.types.ReplyKeyboardRemove())
                     # Регистрируем событие
                     bot.register_next_step_handler(call, adminHandler, message, 4)
             else:
@@ -130,7 +191,7 @@ def adminHandler(call: telebot.types.Message, message: dict, step: int = 0):
                 sendMessage('☝ Ответ не является допустимым числом!', message['user'])
                 # Отсылаем сообщение
                 sendMessage('🤔 Отправьте желаемый уровень.\nУровень не должен привышать ваш собственный!',
-                            message['user'])
+                            message['user'], reply=telebot.types.ReplyKeyboardRemove())
                 # Регистрируем событие
                 bot.register_next_step_handler(call, adminHandler, message, 4)
             # Ломаем блок
@@ -184,51 +245,27 @@ def adminHandler(call: telebot.types.Message, message: dict, step: int = 0):
                     # Отсылаем сообщение
                     sendMessage(f'✔ Назначение подтверждено', message['user'],
                                 reply=telebot.types.ReplyKeyboardRemove())
-                    # Попытка записи
-                    try:
-                        # Если получено число
-                        if checkInt(lastKey):
-                            # Создаём админа
-                            admin: Admin = (Admin(getUser(int(lastKey))))
-                            admin.writeNewAdmin(int(ram[lastKey]['level']), ram[lastKey]['prefix'])
-                            # Информируем кандидата
-                            sendMessage(f'💥 <b>Вы были назначены на должность администратора в сети '
-                                        f'HealthAI!</b>\n\n'
-                                        f'Подойдите добросовестно к исполнению своих обязанностей 🤗\nУровень: '
-                                        f'{admin.getAdmin()["level"]}\nПрефикс: {admin.getAdmin()["prefix"]}', lastKey,
-                                        message['user'])
-                        else:
-                            # Создаём админа
-                            admin: Admin = Admin(getUser(lastKey))
-                            admin.writeNewAdmin(int(ram[lastKey]['level']), ram[lastKey]['prefix'])
-                            # Информируем кандидата
-                            sendMessage(f'💥 <b>Вы были назначены на должность администратора в сети '
-                                        f'HealthAI!</b>\n\n'
-                                        f'Подойдите добросовестно к исполнению своих обязанностей 🤗\nУровень: '
-                                        f'{admin.getAdmin()["level"]}\nПрефикс: {admin.getAdmin()["prefix"]}', lastKey,
-                                        message['user'])
-                    except KeyError:
-                        # Если получено число
-                        if checkInt(lastKey):
-                            # Создаём админа
-                            admin: Admin = Admin(getUser(int(lastKey)))
-                            admin.writeNewAdmin(int(ram[lastKey]['level']))
-                            # Информируем кандидата
-                            sendMessage(f'💥 <b>Вы были назначены на должность администратора в сети '
-                                        f'HealthAI!</b>\n\n'
-                                        f'Подойдите добросовестно к исполнению своих обязанностей 🤗\nУровень: '
-                                        f'{admin.getAdmin()["level"]}\nПрефикс: ❌ Не указан', lastKey,
-                                        message['user'])
-                        else:
-                            # Создаём админа
-                            admin: Admin = Admin(getUser(lastKey))
-                            admin.writeNewAdmin(int(ram[lastKey]['level']))
-                            # Информируем кандидата
-                            sendMessage(f'💥 <b>Вы были назначены на должность администратора в сети '
-                                        f'HealthAI!</b>\n\n'
-                                        f'Подойдите добросовестно к исполнению своих обязанностей 🤗\nУровень: '
-                                        f'{admin.getAdmin()["level"]}\nПрефикс: ❌ Не указан', lastKey,
-                                        message['user'])
+                    # Если получено число
+                    if checkInt(lastKey):
+                        # Создаём админа
+                        admin: Admin = (Admin(getUser(int(lastKey))))
+                        admin.writeNewAdmin(int(ram[lastKey]['level']), ram[lastKey]['prefix'])
+                        # Информируем кандидата
+                        sendMessage(f'💥 <b>Вы были назначены на должность администратора в сети '
+                                    f'HealthAI!</b>\n\n'
+                                    f'Подойдите добросовестно к исполнению своих обязанностей 🤗\nУровень: '
+                                    f'{admin.getAdmin()["level"]}\nПрефикс: {admin.getAdmin()["prefix"]}',
+                                    getUser(int(lastKey)))
+                    else:
+                        # Создаём админа
+                        admin: Admin = Admin(getUser(lastKey))
+                        admin.writeNewAdmin(int(ram[lastKey]['level']), ram[lastKey]['prefix'])
+                        # Информируем кандидата
+                        sendMessage(f'💥 <b>Вы были назначены на должность администратора в сети '
+                                    f'HealthAI!</b>\n\n'
+                                    f'Подойдите добросовестно к исполнению своих обязанностей 🤗\nУровень: '
+                                    f'{admin.getAdmin()["level"]}\nПрефикс: {admin.getAdmin()["prefix"]}',
+                                    getUser(lastKey))
                 except AttributeError:
                     # Отсылаем сообщение
                     sendMessage(f'❌ Назначение отменено\nПользователя с ID {lastKey} не существует!',
@@ -255,13 +292,7 @@ def callCheckDoctor(call: telebot.types.Message, message: dict):
     # Иттерация по вариантам
     for case in Switch(message['message']):
         # Проверка вариантов
-        if case():
-            # Отсылаем сообщение
-            sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к администратору!',
-                        message['user'])
-            # Ломаем блок
-            break
-        elif case('doctorAnonim'):
+        if case('doctorAnonim'):
             # Ломаем блок
             break
         elif case('patient'):
@@ -279,6 +310,12 @@ def callCheckDoctor(call: telebot.types.Message, message: dict):
         elif case('doctorKick'):
             # Ломаем блок
             break
+        elif case():
+            # Отсылаем сообщение
+            sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к администратору!',
+                        message['user'], reply=telebot.types.ReplyKeyboardRemove())
+            # Ломаем блок
+            break
 
 
 # Обработчик Inline запросов пациента
@@ -286,13 +323,7 @@ def callCheckPatient(call: telebot.types.Message, message: dict):
     # Иттерация по вариантам
     for case in Switch(message['message']):
         # Проверка вариантов
-        if case():
-            # Отсылаем сообщение
-            sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к администратору!',
-                        message['user'])
-            # Ломаем блок
-            break
-        elif case('contactDoctor'):
+        if case('contactDoctor'):
             # Ломаем блок
             break
         elif case('anonContactDoctor'):
@@ -302,6 +333,12 @@ def callCheckPatient(call: telebot.types.Message, message: dict):
             # Ломаем блок
             break
         elif case('patientDoctorKick'):
+            # Ломаем блок
+            break
+        elif case():
+            # Отсылаем сообщение
+            sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к администратору!',
+                        message['user'], reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
 
@@ -316,12 +353,13 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
             if Admin(message['user']).getAdmin()['level'] >= 4:
                 # Отсылаем сообщение
                 sendMessage('🤔 Введите имя пользователя или его ID для назначения в админы',
-                            message['user'])
+                            message['user'], reply=telebot.types.ReplyKeyboardRemove())
                 # Передаём параметр в функцию
                 bot.register_next_step_handler(call, adminHandler, message)
             else:
                 # Отсылаем сообщение
-                sendMessage('☝ Ваш ранг недостаточен!', message['user'])
+                sendMessage('☝ Ваш ранг недостаточен!', message['user'],
+                            reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
         elif case('contactUser'):
@@ -329,12 +367,13 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
             if Admin(message['user']).getAdmin()['level'] >= 1:
                 # Отсылаем сообщение
                 sendMessage('🤔 Введите имя пользователя или его ID для контакта',
-                            message['user'])
+                            message['user'], reply=cancel)
                 # Передаём параметр в функцию
                 bot.register_next_step_handler(call, adminHandler, message, 1)
             else:
                 # Отсылаем сообщение
-                sendMessage('☝ Ваш ранг недостаточен!', message['user'])
+                sendMessage('☝ Ваш ранг недостаточен!', message['user'],
+                            reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
         elif case('removeAdmin'):
@@ -342,12 +381,13 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
             if Admin(message['user']).getAdmin()['level'] >= 3:
                 # Отсылаем сообщение
                 sendMessage('🤔 Введите имя пользователя или его ID для удаления из админов',
-                            message['user'])
+                            message['user'], reply=cancel)
                 # Передаём параметр в функцию
                 bot.register_next_step_handler(call, adminHandler, message, 2)
             else:
                 # Отсылаем сообщение
-                sendMessage('☝ Ваш ранг недостаточен!', message['user'])
+                sendMessage('☝ Ваш ранг недостаточен!', message['user'],
+                            reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
         elif case('removeDoctor'):
@@ -355,18 +395,19 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
             if Admin(message['user']).getAdmin()['level'] >= 2:
                 # Отсылаем сообщение
                 sendMessage('🤔 Введите имя пользователя или его ID для удаления из врачей',
-                            message['user'])
+                            message['user'], reply=cancel)
                 # Передаём параметр в функцию
                 bot.register_next_step_handler(call, adminHandler, message, 3)
             else:
                 # Отсылаем сообщение
-                sendMessage('☝ Ваш ранг недостаточен!', message['user'])
+                sendMessage('☝ Ваш ранг недостаточен!', message['user'],
+                            reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
         elif case():
             # Отсылаем сообщение
             sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к разработчику!',
-                        message['user'])
+                        message['user'], reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
 
@@ -1342,10 +1383,17 @@ def adminPanel(message):
                 telebot.types.InlineKeyboardButton("💥 Разжаловать врача",
                                                    callback_data=f"removeDoctor|{admin.getUser().get()['id']}")
             )
-            # Отправляем сообщение
-            sendMessage(f'👋 <b>Админ-панель:</b>\n\nНик: {admin.getUser().get()["username"]}\nПрефикс: '
-                        f'{admin.getAdmin()["prefix"]}\nУровень: {admin.getAdmin()["level"]}',
-                        message.chat.id, admin.getUser(), reply=keyboard)
+            # Если есть префикс
+            if 'prefix' in admin.getAdmin() and admin.getAdmin()['prefix'] != 'undefined':
+                # Отправляем сообщение
+                sendMessage(f'👋 <b>Админ-панель:</b>\n\nНик: {admin.getUser().get()["username"]}\nПрефикс: '
+                            f'{admin.getAdmin()["prefix"]}\nУровень: {admin.getAdmin()["level"]}',
+                            message.chat.id, admin.getUser(), reply=keyboard)
+            else:
+                # Отправляем сообщение
+                sendMessage(f'👋 <b>Админ-панель:</b>\n\nНик: {admin.getUser().get()["username"]}'
+                            f'\nУровень: {admin.getAdmin()["level"]}',
+                            message.chat.id, admin.getUser(), reply=keyboard)
         else:
             # Отсылаем ошибку
             sendMessage('☝ Вы не администратор!', message.chat.id, admin.getUser())
