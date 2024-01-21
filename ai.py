@@ -219,7 +219,7 @@ def trainDocumentScaner(path: str = 'templates'):
         except PermissionError:
             pass
     # Сохранение файла
-    with open('train.json', 'w+') as f:
+    with open('train.json', 'w+', encoding=os.getenv('CODEC')) as f:
         # Запись массива
         f.write(json.dumps(templates))
     # Инициализирован
@@ -262,7 +262,7 @@ def initAi() -> bool:
     else:
         try:
             # Открываем файл
-            with open('train.json', 'r') as f:
+            with open('train.json', 'r', encoding=os.getenv('CODEC')) as f:
                 # Читаем значения
                 templates = json.loads(f.read())
             # Инициализировано
