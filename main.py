@@ -121,10 +121,7 @@ def patientHandler(call: telebot.types.Message, message: dict, step: int = 0):
                 bot.register_next_step_handler(call, patientHandler, message, 1)
             # Ломаем блок
             break
-        elif case(2):
-            # Ломаем блок
-            break
-        elif case(3):
+        elif case():
             # Ломаем блок
             break
 
@@ -362,6 +359,30 @@ def callCheckDoctor(call: telebot.types.Message, message: dict):
     for case in Switch(message['message']):
         # Проверка вариантов
         if case('doctorAnonim'):
+            # Запускаем поиск
+            ram[message['user'].get()['id']] = {
+                'type': 'system',
+                'operation': Operations.AnonContactFind
+            }
+            # Отправляем сообщение
+            sendMessage('🤝 Поиск анонимного пациента начат!\nСкоро с вами свяжется пациент',
+                        message['user'], reply=cancel)
+            # Иттерация по оперативной памяти
+            for key in ram:
+                # Если найден собеседник
+                if (ram[key]['type'] == 'system' and 'operation' in ram[key] and
+                        ram[key]['operation'] == Operations.AnonContactFind):
+                    # Если собеседник - пациент
+                    if isinstance(getUser(key), Patient) or isinstance(getUser(int(key)), Patient):
+                        # Удаляем из памяти
+                        ram.pop(message['user'].get()['id'])
+                        ram.pop(key)
+                        # Создаём контакт
+                        makeContactFixed(call, message['user'], getUser(key))
+                        # Ломаем функцию
+                        return None
+            # Регистрируем событие
+            bot.register_next_step_handler(call, doctorHandler, message)
             # Ломаем блок
             break
         elif case('patient'):
@@ -432,6 +453,20 @@ def callCheckPatient(call: telebot.types.Message, message: dict):
             # Отправляем сообщение
             sendMessage('🤝 Анонимный поиск врача начат!\nСкоро с вами свяжется специалист',
                         message['user'], reply=cancel)
+            # Иттерация по оперативной памяти
+            for key in ram:
+                # Если найден собеседник
+                if (ram[key]['type'] == 'system' and 'operation' in ram[key] and
+                        ram[key]['operation'] == Operations.AnonContactFind):
+                    # Если собеседник - пациент
+                    if isinstance(getUser(key), Doctor) or isinstance(getUser(int(key)), Doctor):
+                        # Удаляем из памяти
+                        ram.pop(message['user'].get()['id'])
+                        ram.pop(key)
+                        # Создаём контакт
+                        makeContactFixed(call, message['user'], getUser(key))
+                        # Ломаем функцию
+                        return None
             # Регистрируем событие
             bot.register_next_step_handler(call, patientHandler, message)
             # Ломаем блок
@@ -1864,12 +1899,11 @@ def makeContact(call: telebot.types.Message, message: dict, step: int = 0) -> bo
                         ram[call.text]['contactInit'] = call.from_user.id
                         # Отсылаем сообщение
                         sendMessage('👌 Контакт установлен!\nВаши сообщения будут переадресовываться контакту '
-                                    'до команды /stop',
-                                    message['user'])
+                                    'до команды /stop', message['user'], reply=telebot.types.ReplyKeyboardRemove())
                         # Отсылаем сообщение
                         sendMessage(f'👌 Контакт c пользователем {message['user'].get()['username']} '
                                     f'установлен!\nВаши сообщения будут переадресовываться контакту до команды /stop',
-                                    getUser(call.text))
+                                    getUser(call.text), reply=telebot.types.ReplyKeyboardRemove())
                         # Возвращаем результат
                         return True
                     else:
@@ -1942,12 +1976,13 @@ def makeContactFixed(call: telebot.types.Message,
                             ram[toUser.get()['id']]['operation'] = Operations.Contact
                             ram[toUser.get()['id']]['contactInit'] = fromUser.get()['id']
                             # Отсылаем сообщение
-                            sendMessage('👌 Контакт установлен!\nВаши сообщения будут переадресовываться контакту '
-                                        'до команды /stop', fromUser)
+                            sendMessage('👌 Контакт установлен!\nВаши сообщения будут переадресовываться '
+                                        'контакту до команды /stop', fromUser,
+                                        reply=telebot.types.ReplyKeyboardRemove())
                             # Отсылаем сообщение
                             sendMessage(f'👌 Контакт c пользователем {fromUser.get()['username']} '
                                         f'установлен!\nВаши сообщения будут переадресовываться контакту до команды '
-                                        f'/stop', toUser)
+                                        f'/stop', toUser, reply=telebot.types.ReplyKeyboardRemove())
                             # Возвращаем результат
                             return True
                         else:
