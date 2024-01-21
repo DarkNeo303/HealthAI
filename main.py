@@ -557,7 +557,7 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
     # Удаляем сообщение
     bot.delete_message(call.message.chat.id, call.message.id)
     # Указываем значение по умолчанию
-    defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo"]
+    defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo", "kickPatientDoctor"]
     # Пользователь
     user: Union[Patient, Doctor, type(None)] = None
     try:
@@ -583,12 +583,28 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                                 f'{user.get()["id"]}', message['user'])
                     # Ломаем цикл
                     break
-                if case(defaultArgs[1]):
+                elif case(defaultArgs[1]):
                     # Если пользователь существует
                     if getUser(int(message['params'][1])) is not None:
                         # Инициализируем связь
                         makeContactFixed(sendMessage('✔ Контакт инициализирован', message['user']),
                                          message['user'], getUser(int(message['params'][1])))
+                    else:
+                        # Отвечаем на сообщение
+                        sendMessage(f'❌ Пользователя с ID {message['params'][1]} не существует!',
+                                    message['user'])
+                    # Ломаем цикл
+                    break
+                elif case(defaultArgs[2]):
+                    # Если пользователь существует и он - врач
+                    if (getUser(int(message['params'][1])) is not None and
+                            isinstance(getUser(int(message['params'][1])), Doctor)):
+                        # Отказываемся от врача
+                        getUser(int(message['params'][1])).update(Doctor.Types.patients, message['user'])
+                        # Информируем пользователей
+                        sendMessage(f'✔ Вы отказались от врача с ID {message['params'][1]}', message['user'])
+                        sendMessage(f'💥 От Вас отказался пациент {message["user"].get()["username"]}',
+                                    getUser(int(message['params'][1])))
                     else:
                         # Отвечаем на сообщение
                         sendMessage(f'❌ Пользователя с ID {message['params'][1]} не существует!',
@@ -1930,8 +1946,8 @@ def makeContactFixed(call: telebot.types.Message,
                                         'до команды /stop', fromUser)
                             # Отсылаем сообщение
                             sendMessage(f'👌 Контакт c пользователем {fromUser.get()['username']} '
-                                        f'установлен!\nВаши сообщения будут переадресовываться контакту до команды /stop',
-                                        toUser)
+                                        f'установлен!\nВаши сообщения будут переадресовываться контакту до команды '
+                                        f'/stop', toUser)
                             # Возвращаем результат
                             return True
                         else:
