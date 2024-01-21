@@ -1,9 +1,11 @@
-data/old/*
-venv/
-hash/
 /__pycache__/
 __pycache__/
 __pycache__
+data/old/*
+data/old/
+data/old
 /.idea/
 .idea/
+venv/
+hash/
 idea
