@@ -13,8 +13,8 @@ import telebot
 import threading
 from typing import Union, List
 from dotenv import load_dotenv
+from database import getAllUserList
 from deep_translator import GoogleTranslator
-from database import getRandomPatient, getAllUserList
 from support import checkInt, Switch, ram, stringToBool
 from database import Patient, Doctor, getUser, History, Admin, Operations
 
@@ -22,7 +22,6 @@ from database import Patient, Doctor, getUser, History, Admin, Operations
 ai.initAi()
 load_dotenv()
 bot = telebot.TeleBot(os.getenv("TOKEN"))
-
 
 '''
 ======================================
@@ -33,7 +32,6 @@ bot = telebot.TeleBot(os.getenv("TOKEN"))
 # Клавиатура отмены
 cancel = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
 cancel.add(telebot.types.KeyboardButton(text="❌ Отменить"))
-
 
 '''
 ======================================
@@ -71,6 +69,13 @@ def patientHandler(call: telebot.types.Message, message: dict, step: int = 0):
     # Иттерация по вариантам
     for case in Switch(step):
         if case(0):
+            # Если обнаружена отмена
+            if 'отменить' in call.text.lower():
+                # Удаляем операцию
+                ram.pop(message['user'].get()['id'])
+                # Информируем пользователя
+                sendMessage('❌ Поиск анонимного приёма остановлен', message['user'],
+                            reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
         elif case(1):
@@ -335,9 +340,6 @@ def callCheckDoctor(call: telebot.types.Message, message: dict):
             # Ломаем блок
             break
         elif case():
-            # Отсылаем сообщение
-            sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к администратору!',
-                        message['user'], reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
 
@@ -348,9 +350,50 @@ def callCheckPatient(call: telebot.types.Message, message: dict):
     for case in Switch(message['message']):
         # Проверка вариантов
         if case('contactDoctor'):
+            # Клавиатура
+            keyboard = telebot.types.InlineKeyboardMarkup()
+            # Врачи
+            doctors: List[Doctor] = []
+            # Иттерация по врачам
+            for user in getAllUserList():
+                # Если лечащий врач и список пациентов не пуст
+                if isinstance(user, Doctor) and user.getPatients():
+                    # Иттерация по пациентам
+                    for patient in user.getPatients():
+                        # Если ID совпали
+                        if patient.get()['id'] == message['user'].get()['id']:
+                            # Вносим врача
+                            doctors.append(user)
+            # Если список не пуст
+            if doctors:
+                # Иттерация по врачам
+                for doctor in doctors:
+                    # Вносим врача в клавиатуру
+                    keyboard.add(
+                        telebot.types.InlineKeyboardButton(f"👨‍⚕️ {doctor.get()['username']} "
+                                                           f"[{doctor.get()['qualification']}]",
+                                                           callback_data=f"callFromTo|{message['user'].get()['id']}|"
+                                                                         f"{doctor.get()['id']}"))
+            else:
+                # Отправляем сообщение
+                sendMessage('❣ Вы не состоите на врачебном учёте', message['user'])
+                # Ломаем блок
+                break
+            # Отправляем сообщение
+            sendMessage('👨‍⚕️ <b>Ваши лечащие врачи:</b>', message['user'], reply=keyboard)
             # Ломаем блок
             break
         elif case('anonContactDoctor'):
+            # Запускаем поиск
+            ram[message['user'].get()['id']] = {
+                'type': 'system',
+                'operation': Operations.AnonContactFind
+            }
+            # Отправляем сообщение
+            sendMessage('🤝 Анонимный поиск врача начат!\nСкоро с вами свяжется специалист',
+                        message['user'], reply=cancel)
+            # Регистрируем событие
+            bot.register_next_step_handler(call, patientHandler, message)
             # Ломаем блок
             break
         elif case('patientExtract'):
@@ -360,9 +403,6 @@ def callCheckPatient(call: telebot.types.Message, message: dict):
             # Ломаем блок
             break
         elif case():
-            # Отсылаем сообщение
-            sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к администратору!',
-                        message['user'], reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
 
@@ -429,9 +469,6 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
             # Ломаем блок
             break
         elif case():
-            # Отсылаем сообщение
-            sendMessage('😐 Callback не распознан.\nОбратитесь за помощью к разработчику!',
-                        message['user'], reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
 
@@ -440,7 +477,7 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
 @bot.callback_query_handler(func=lambda call: True)
 def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
     # Указываем значение по умолчанию
-    defaultArgs = defaultArgs or ["sendSelfLink"]
+    defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo"]
     # Пользователь
     user: Union[Patient, Doctor, type(None)] = None
     try:
@@ -454,7 +491,7 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
         message: dict = {
             'user': user,
             'message': call.data.split('|')[0],
-            'params': call.data.split('|')[:2]
+            'params': call.data.split('|')[1:]
         }
         # Если получен общий запрос
         if message['message'] in defaultArgs:
@@ -466,20 +503,31 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                                 f'{user.get()["id"]}', message['user'])
                     # Ломаем цикл
                     break
+                if case(defaultArgs[1]):
+                    # Если пользователь существует
+                    if getUser(int(message['params'][1])) is not None:
+                        # Инициализируем связь
+                        makeContactFixed(sendMessage('✔ Контакт инициализирован', message['user']),
+                                         message['user'], getUser(int(message['params'][1])))
+                    else:
+                        # Отвечаем на сообщение
+                        sendMessage(f'❌ Пользователя с ID {message['params'][1]} не существует!',
+                                    message['user'])
+                    # Ломаем цикл
+                    break
             # Возвращаем значение
             return None
         # Если пользователь - админ
         if Admin(user).getAdmin() is not None:
             # Передаём параметр
             callCheckAdmin(call.message, message)
-        else:
-            # Если пользователь - пациент
-            if isinstance(user, Patient):
-                # Передаём параметр
-                callCheckPatient(call.message, message)
-            elif isinstance(user, Doctor):
-                # Передаём параметр
-                callCheckDoctor(call.message, message)
+        # Если пользователь - пациент
+        if isinstance(user, Patient):
+            # Передаём параметр
+            callCheckPatient(call.message, message)
+        elif isinstance(user, Doctor):
+            # Передаём параметр
+            callCheckDoctor(call.message, message)
 
 
 '''
@@ -1523,9 +1571,22 @@ def start(message):
     elif (len(str(message.text).split()) == 2 and checkInt(str(message.text).split()[1]) and
           message.from_user.id not in ram.keys()):
         # Если пользователь существует
-        if getUser(message.from_user.id) is not None:
-            # Открываем профиль
-            profile(message)
+        if getUser(message.from_user.id) is not None and isinstance(getUser(message.from_user.id), Patient):
+            # Пользователь
+            user: Union[Patient, Doctor] = getUser(int(str(message.text).split()[1]))
+            # Если пользователь с указанным ID - врач
+            if user is not None and isinstance(user, Doctor):
+                # Вносим пациента в список
+                user.update(Doctor.Types.patients, getUser(message.from_user.id))
+                # Информируем пользователей
+                sendMessage(f"🤝 Вы записались к доктору {user.get()['username']}",
+                            message.chat.id, getUser(message.from_user.id))
+                sendMessage(f"🤝 К вам записался новый пациент: "
+                            f"{getUser(message.from_user.id).get()['username']}", user)
+            else:
+                # Отправляем сообщение
+                sendMessage("Пригласивший Вас не является доктором 😥",
+                            message.chat.id, getUser(message.from_user.id))
         elif getUser(message.from_user.id) is None:
             # Если пользователь регистрируется
             if message.from_user.id in ram.keys() and ram[message.from_user.id]['lang'] is not None:
@@ -1745,6 +1806,86 @@ def makeContact(call: telebot.types.Message, message: dict, step: int = 0) -> bo
             ram.pop(call.text)
         # Повторяем вызов
         makeContact(call, message)
+        # Возвращаем результат
+        return False
+
+
+# Создание чата (более удобная версия)
+def makeContactFixed(call: telebot.types.Message,
+                     fromUser: Union[Patient, Doctor], toUser: Union[Patient, Doctor], step: int = 0) -> bool:
+    # Проверка состояния
+    if step == 0:
+        # В контакте
+        contact: bool = False
+        # Попытка выполнения запроса
+        try:
+            # Если собеседник не в чате
+            if toUser.get()['id'] not in ram and toUser.get()['id'] not in ram:
+                # Иттерация по контактам
+                for key in ram:
+                    # Если содержиться необходимый ключ
+                    if ('type' in ram[key] and 'operation' in ram['key'] and
+                            ram[key]['operation'] == Operations.Contact):
+                        # Проверяем ключ
+                        if (ram[key]['contactInit'] == fromUser.get()['id'] or
+                                ram[key]['contactInit'] == fromUser.get()['username']):
+                            # В контакте
+                            contact = True
+                            # Ломаем иттерацию
+                            break
+                # Если не в чате
+                if not contact:
+                    # Если не в чате
+                    if fromUser.get()['id'] not in ram and fromUser.get()['username'] not in ram:
+                        # Если такой пользователь существует
+                        if fromUser is not None:
+                            # Устанавливаем связь
+                            ram[toUser.get()['id']] = {'type': 'system'}
+                            ram[toUser.get()['id']]['operation'] = Operations.Contact
+                            ram[toUser.get()['id']]['contactInit'] = fromUser.get()['id']
+                            # Отсылаем сообщение
+                            sendMessage('👌 Контакт установлен!\nВаши сообщения будут переадресовываться контакту '
+                                        'до команды /stop', fromUser)
+                            # Отсылаем сообщение
+                            sendMessage(f'👌 Контакт c пользователем {fromUser.get()['username']} '
+                                        f'установлен!\nВаши сообщения будут переадресовываться контакту до команды /stop',
+                                        toUser)
+                            # Возвращаем результат
+                            return True
+                        else:
+                            # Отсылаем сообщение
+                            sendMessage(f'❌ Контакт не установлен!\nПользователь с ID '
+                                        f'{toUser.get()["id"]} не найден', fromUser)
+                            # Возвращаем результат
+                            return False
+                    else:
+                        # Клавиатура
+                        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+                        keyboard.add(telebot.types.KeyboardButton(text="❌ Завершить"))
+                        # Отсылаем сообщение
+                        sendMessage('☝ Завершите все диалоги и процессы, прежде чем начать новый диалог!',
+                                    fromUser, reply=keyboard)
+                        # Регистрируем процесс
+                        bot.register_next_step_handler(call, makeContactFixed, 1)
+                        # Возвращаем результат
+                        return False
+                else:
+                    # Отсылаем сообщение
+                    sendMessage(f'❌ Контакт не установлен!\nПользователь с ID '
+                                f'{toUser.get()["id"]} уже в диалоге!', fromUser)
+                    # Возвращаем результат
+                    return False
+        except ValueError:
+            # Отсылаем сообщение
+            sendMessage(f'❌ Контакт не установлен!\nПользователь с ID {toUser.get()["id"]} не найден',
+                        fromUser)
+            # Возвращаем результат
+            return False
+    else:
+        # Удаляем ключ
+        ram.pop(toUser.get()['id'])
+        # Повторяем вызов
+        makeContact(call, fromUser, toUser)
         # Возвращаем результат
         return False
 

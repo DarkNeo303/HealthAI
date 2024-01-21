@@ -62,6 +62,7 @@ connection.commit()
 class Operations(Enum):
     MakeAdmin = 0
     Contact = 1
+    AnonContactFind = 2
 
 
 # Тип данных таблицы
@@ -121,8 +122,8 @@ class Doctor:
             self.__qualification: dict = {}
             self.__document: bytes = b"0"
             self.__discharged: int = 0
-            self.__subordinates: dict = {}
-            self.__patients: dict = {}
+            self.__subordinates: List[Doctor] = []
+            self.__patients: List[Patient] = []
             self.__exsist: bool = False
             # Попытка найти пользователя
             result = database.execute(f'SELECT * FROM doctors WHERE id={id}').fetchone()
@@ -274,13 +275,28 @@ class Doctor:
                 raise TypeError("The 'document' field requires the 'byte' type!")
         elif types == self.Types.patients:
             # Проверка параметра
-            if isinstance(value, list):
-                # Обновляем поле
-                self.__patients = value
-                # Список пациентов
+            if isinstance(value, Patient):
+                # Существует
+                exsist: Union[Patient, bool] = False
+                # Подчинённые
                 patients: List[int] = []
+                # Иттерация по пациентам
+                for patient in self.__patients:
+                    # Если ID совпали
+                    if value.get()['id'] == patient.get()['id']:
+                        # Существует
+                        exsist = patient
+                        # Ломаем иттерацию
+                        break
+                # Если не существует
+                if not exsist:
+                    # Обновляем поле
+                    self.__patients.append(value)
+                else:
+                    # Обновляем поле
+                    self.__patients.remove(exsist)
                 # Перебор пациентов
-                for patient in value:
+                for patient in self.__patients:
                     # Вносим пациента
                     patients.append(patient.get()['id'])
                 # Обновляем БД
