@@ -1304,12 +1304,12 @@ def listCommand(message):
                                         doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
                                                                f"[{user.get()['qualification']}]\n📱 Телефон: "
                                                                f"{user.get()['phone']}\n👨‍⚕️ Руководитель: "
-                                                               f"{director.get['username']}\n")
+                                                               f"{director.get()['username']}\n")
                                     else:
                                         # Вносим в список
                                         doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
                                                                f"[{user.get()['qualification']}]\n👨‍⚕️ Руководитель: "
-                                                               f"{director.get['username']}\n")
+                                                               f"{director.get()['username']}\n")
                                 else:
                                     # Если есть номер телефона
                                     if 'phone' in user.get():
@@ -1317,12 +1317,12 @@ def listCommand(message):
                                         doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
                                                                f"[{user.get()['qualification']}]\n📱 Телефон: "
                                                                f"{user.get()['phone']}\n👨‍⚕️ Руководитель: "
-                                                               f"{director.get['username']}\n")
+                                                               f"{director.get()['username']}\n")
                                     else:
                                         # Вносим в список
                                         doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
                                                                f"[{user.get()['qualification']}]\n👨‍⚕️ Руководитель: "
-                                                               f"{director.get['username']}\n")
+                                                               f"{director.get()['username']}\n")
                     # Прибавляем сообщения
                     msg += doctors['message']
                     # Отправляем сообщение
