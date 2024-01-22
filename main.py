@@ -386,6 +386,26 @@ def callCheckDoctor(call: telebot.types.Message, message: dict):
             # Ломаем блок
             break
         elif case('patient'):
+            # Клавиатура
+            keyboard = telebot.types.InlineKeyboardMarkup()
+            # Врачи
+            patients: List[Patient] = message['user'].getPatients()
+            # Если список не пуст
+            if patients:
+                # Иттерация по пациентам
+                for patient in patients:
+                    # Вносим пациента в клавиатуру
+                    keyboard.add(
+                        telebot.types.InlineKeyboardButton(f"🤕 {patient.get()['username']}",
+                                                           callback_data=f"callFromTo|{message['user'].get()['id']}|"
+                                                                         f"{patient.get()['id']}"))
+            else:
+                # Отправляем сообщение
+                sendMessage('❣ У Вас пока нет пациентов', message['user'])
+                # Ломаем блок
+                break
+            # Отправляем сообщение
+            sendMessage('🤕 <b>Ваши пациенты:</b>', message['user'], reply=keyboard)
             # Ломаем блок
             break
         elif case('qualification'):
