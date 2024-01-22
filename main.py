@@ -1160,7 +1160,7 @@ def profile(message):
         # Если есть вылеченные
         if user.get()["discharged"] is not None:
             # Если указан телефон
-            if 'phone' in user.get():
+            if 'phone' in user.get() or user.get()['phone'] is not None:
                 # Если есть фото
                 if user.get()['document'] is not None:
                     # Отсылаем анкету
@@ -1769,19 +1769,16 @@ def start(message):
 def stop(message: telebot.types.Message):
     # Если пользователь находиться в контакте
     if message.from_user.id in ram or getUser(message.from_user.id).get()['username'] in ram:
+        # Выводим сообщение
+        sendMessage('😥 Вы прекратили диалог', getUser(message.from_user.id))
         try:
             # Пересылаем сообщение
             sendMessage('😥 Собеседник прекратил диалог',
                         getUser(ram[message.from_user.id]['contactInit']), getUser(message.from_user.id))
         except Exception:
-            try:
-                # Пересылаем сообщение
-                sendMessage('😥 Собеседник прекратил диалог',
-                            getUser(ram[message.from_user.id]['contactInit']), getUser(message.from_user.id))
-            except Exception:
-                # Посылаем сообщение
-                sendMessage('❌ Диалог прекращён с ошибкой.\nПользователя не существует',
-                            getUser(message.from_user.id))
+            # Посылаем сообщение
+            sendMessage('❌ Диалог прекращён с ошибкой.\nПользователя не существует',
+                        getUser(message.from_user.id))
         # Удаляем информацию из оперативной памяти
         ram.pop(message.from_user.id)
         # Прерываем функцию
@@ -1809,6 +1806,10 @@ def stop(message: telebot.types.Message):
         try:
             # Удаляем информацию из оперативной памяти
             ram.pop(removeKey)
+            # Выводим сообщение
+            sendMessage('😥 Вы прекратили диалог', getUser(message.from_user.id))
+            # Ломаем функцию
+            return None
         except Exception:
             pass
     # Посылаем сообщение
