@@ -716,6 +716,16 @@ def callCheckAdmin(call: telebot.types.Message, message: dict):
             break
 
 
+# Кабинет лечения
+def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient, step: int = 0):
+    # Иттерация по вариантам
+    for case in Switch(step):
+        # Проверка вариантов
+        if case(0):
+            # Ломаем функцию
+            break
+
+
 # Обработчик Inline запросов
 @bot.callback_query_handler(func=lambda call: True)
 def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
@@ -820,6 +830,29 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                         sendMessage('😥 У Вас пока нет подчинённых', message['user'])
                     # Ломаем цикл
                     break
+                elif case(defaultArgs[5]):
+                    # Если автор коллбэка - врач
+                    if isinstance(message['user'], Doctor):
+                        # Иттерация по пациентам
+                        for patient in message['user'].getPatients():
+                            # Если пациент присвоен врачу и пользователь
+                            if patient.get()['id'] == getUser(int(message['params'][1])).get()['id']:
+                                # Если нету аргументов
+                                if len(message['params']) < 3:
+                                    # Передаём параметры в функцию
+                                    healCabinet(call, message['user'], getUser(int(message['params'][1])))
+                                else:
+                                    # Передаём параметры в функцию
+                                    healCabinet(call, message['user'], getUser(int(message['params'][1])),
+                                                int(message['params'][2]))
+                                # Ломаем иттерацию
+                                return None
+                        # Отправляем сообщение
+                        sendMessage('❌ Невозможно завершить операцию - это не ваш пациент!',
+                                    message['user'])
+                    else:
+                        # Отправляем сообщение
+                        sendMessage('❌ Невозможно завершить операцию - вы не врач!', message['user'])
             # Возвращаем значение
             return None
         # Если пользователь - админ
@@ -1523,7 +1556,7 @@ def photoHandler(message):
                 and ram[message.from_user.id]['document'] is None):
             # Если смена документа
             if ((ram[message.from_user.id]['type'] == 'system' and
-                    ram[message.from_user.id]['operation'] == Operations.ChangeMe) and
+                 ram[message.from_user.id]['operation'] == Operations.ChangeMe) and
                     isinstance(getUser(message.from_user.id), Doctor)):
                 # Отправляем сообщение
                 sendMessage("👌 Сканирование документа...", getUser(message.from_user.id))
