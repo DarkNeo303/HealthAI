@@ -64,6 +64,39 @@ def doctorHandler(call: telebot.types.Message, message: dict, step: int = 0):
             # Ломаем блок
             break
         elif case(1):
+            # Если подтверждение
+            if 'подтвердить' in call.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Вы успешно уволились.\nАккаунт удалён. Были рады с Вами поработать 😉',
+                            message['user'], reply=telebot.types.ReplyKeyboardRemove())
+                # Инфомируем пользователей
+                for user in getAllUserList():
+                    # Если врач
+                    if isinstance(user, Doctor):
+                        # Если есть подчинённые
+                        if user.getSubordinates():
+                            # Иттерация по подчинённым
+                            for doctor in user.getSubordinates():
+                                # Если врач находиться в подчинении
+                                if message['user'].get()['id'] == doctor.get()['id']:
+                                    # Удаляем врача
+                                    doctor.update(message['user'])
+                                    # Отправляем сообщение
+                                    sendMessage(f'💥 Ваш подчинённый {message["user"].get()["username"]}'
+                                                f' уволился по собственному желанию', user)
+                # Если есть пациенты
+                if message['user'].getPatients():
+                    # Иттерация по пациентам
+                    for patient in message['user'].getPatients():
+                        # Отправляем сообщение
+                        sendMessage(f'💥 Ваш лечащий врач {message["user"].get()["username"]}'
+                                    f' уволился по собственному желанию', patient)
+                # Удаляем врача
+                message['user'].remove()
+            else:
+                # Отправляем сообщение
+                sendMessage('❌ Увольнение отменено', message['user'],
+                            reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
         elif case(2):
@@ -427,9 +460,38 @@ def callCheckDoctor(call: telebot.types.Message, message: dict):
             # Ломаем блок
             break
         elif case('patientKick'):
+            # Клавиатура
+            keyboard = telebot.types.InlineKeyboardMarkup()
+            # Врачи
+            patients: List[Patient] = message['user'].getPatients()
+            # Если список не пуст
+            if patients:
+                # Иттерация по пациентам
+                for patient in patients:
+                    # Вносим пациента в клавиатуру
+                    keyboard.add(
+                        telebot.types.InlineKeyboardButton(f"🤕 {patient.get()['username']}",
+                                                           callback_data=f"kickDoctorPatient|"
+                                                                         f"{message['user'].get()['id']}|"
+                                                                         f"{patient.get()['id']}"))
+            else:
+                # Отправляем сообщение
+                sendMessage('❣ У Вас пока нет пациентов', message['user'])
+                # Ломаем блок
+                break
+            # Отправляем сообщение
+            sendMessage('🤕 <b>Ваши пациенты:</b>', message['user'], reply=keyboard)
             # Ломаем блок
             break
-        elif case('passchangePhoto'):
+        elif case('leave'):
+            # Отправляем сообщение
+            sendMessage('📛 <b>Вы уверены, что хотите покинуть свою должность?</b>\nПосле '
+                        'увольнения все Ваши заслуги будут аннулированы', message['user'], reply=apply)
+            # Регистрируем следующий шаг
+            bot.register_next_step_handler(call, doctorHandler, message, 1)
+            # Ломаем блок
+            break
+        elif case('changePhoto'):
             # Ломаем блок
             break
         elif case('doctorKick'):
@@ -627,7 +689,7 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
     # Удаляем сообщение
     bot.delete_message(call.message.chat.id, call.message.id)
     # Указываем значение по умолчанию
-    defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo", "kickPatientDoctor"]
+    defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo", "kickPatientDoctor", "kickDoctorPatient"]
     # Пользователь
     user: Union[Patient, Doctor, type(None)] = None
     try:
@@ -679,6 +741,24 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                         # Отвечаем на сообщение
                         sendMessage(f'❌ Пользователя с ID {message['params'][1]} не существует!',
                                     message['user'])
+                    # Ломаем цикл
+                    break
+                elif case(defaultArgs[3]):
+                    # Если пациент существует
+                    if getUser(int(message["params"][1])) is not None:
+                        # Иттерация по пациентам
+                        for patient in message['user'].getPatients():
+                            # Если ID совпали
+                            if getUser(int(message["params"][1])).get()['id'] == patient.get()['id']:
+                                # Удаляем пациента
+                                message['user'].update(Doctor.Types.patients, getUser(int(message["params"][1])))
+                                # Информируем пользователей
+                                sendMessage(f'✔ Вы отказались от лечения {getUser(int(message["params"][1]))
+                                            .get()["username"]}', message['user'])
+                                sendMessage(f'💥 От Вас отказался доктор {message["user"].get()["username"]}',
+                                            getUser(int(message["params"][1])))
+                                # Возвращаем значение
+                                return None
                     # Ломаем цикл
                     break
             # Возвращаем значение
