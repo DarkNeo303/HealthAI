@@ -50,6 +50,17 @@ def doctorHandler(call: telebot.types.Message, message: dict, step: int = 0):
     # Иттерация по вариантам
     for case in Switch(step):
         if case(0):
+            # Если не отмена
+            if 'отменить' not in call.text.lower():
+                # Отправляем сообщение
+                sendMessage(f'✔ Квалификация сменена с "{message["user"].get()["qualification"]}" на '
+                            f'"{call.text}"', message['user'], reply=telebot.types.ReplyKeyboardRemove())
+                # Меняем квалификацию
+                message['user'].update(Doctor.Types.qualification, call.text)
+            else:
+                # Отправляем сообщение
+                sendMessage('❌ Смена квалификации отменена', message['user'],
+                            reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
         elif case(1):
@@ -409,6 +420,10 @@ def callCheckDoctor(call: telebot.types.Message, message: dict):
             # Ломаем блок
             break
         elif case('qualification'):
+            # Отправляем сообщение
+            sendMessage('🤔 Введите новую квалификацию', message['user'], reply=cancel)
+            # Устанавливаем обработчик
+            bot.register_next_step_handler(call, doctorHandler, message)
             # Ломаем блок
             break
         elif case('patientKick'):
@@ -1180,7 +1195,7 @@ def profile(message):
         # Если есть вылеченные
         if user.get()["discharged"] is not None:
             # Если указан телефон
-            if 'phone' in user.get() or user.get()['phone'] is not None:
+            if 'phone' in user.get() and user.get()['phone'] is not None:
                 # Если есть фото
                 if user.get()['document'] is not None:
                     # Отсылаем анкету
@@ -1194,7 +1209,7 @@ def profile(message):
                     # Отсылаем анкету
                     sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
                                 f'{user.get()["username"]}'
-                                f'\nТелефон: {user.get()["document"]}\nКвалификация: '
+                                f'\nТелефон: {user.get()["phone"]}\nКвалификация: '
                                 f'{user.get()["qualification"]}\nВылеченные: {user.get()["discharged"]}',
                                 message.chat.id, user, reply=keyboard)
             else:
@@ -1215,7 +1230,7 @@ def profile(message):
                                 message.chat.id, user, reply=keyboard)
         else:
             # Если указан телефон
-            if 'phone' in user.get():
+            if 'phone' in user.get() and user.get()['phone'] is not None:
                 # Если есть фото
                 if user.get()['document'] is not None:
                     # Отсылаем анкету
