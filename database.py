@@ -5,6 +5,7 @@
 ======================================
 Разработчик: Савунов Александр
 """
+import ast
 
 # Библиотеки
 import ai
@@ -15,8 +16,8 @@ import datetime
 from enum import Enum
 from random import choice
 from dotenv import load_dotenv
+from dataclasses import dataclass
 from typing import Union, List, Tuple
-from dataclasses import dataclass, field
 
 # Инициализация
 load_dotenv()
@@ -81,8 +82,8 @@ class Table:
     title: str = "undefined"
     expires: datetime.date = None
     assigned: datetime.date = None
-    replyable: List[str] = field(default_factory=List[str])
-    variants: Union[dict, List[Variant]] = field(default_factory=dict)
+    replyable: List[str] = None
+    variants: Union[dict, List[Variant]] = None
 
     # После инициализации
     def __post_init__(self):
@@ -420,7 +421,7 @@ class History:
     class TableAnswers:
         # Переменные
         table: Table = None
-        answers: List[str] = field(default_factory=List[str])
+        answers: List[str] = None
 
     # Диагноз
     @dataclass
@@ -436,10 +437,10 @@ class History:
     complaints: str = "undefined"
     description: str = "undefined"
     assigned: datetime.date = None
-    medicines: List[str] = field(default_factory=List[str])
-    doctors: List[Doctor] = field(default_factory=List[Doctor])
-    diagnoses: List[Diagnosis] = field(default_factory=List[Diagnosis])
-    answers: List[TableAnswers] = field(default_factory=List[TableAnswers])
+    medicines: List[str] = None
+    doctors: List[Doctor] = None
+    diagnoses: List[Diagnosis] = None
+    answers: List[TableAnswers] = None
 
 
 # Класс пациента
@@ -463,6 +464,86 @@ class Patient:
         tables = 2,
         age = 3,
         lang = 4
+
+    # Парсинг истории болезни
+    def __parseHistory(self, data: Union[History, dict]) -> Union[History, dict]:
+        # Проверка типов
+        if isinstance(data, dict):
+            try:
+                # Переменные
+                medicines: List[str] = []
+                doctors: List[Doctor] = []
+                diagnoses: List[History.Diagnosis] = []
+                answers: List[History.TableAnswers] = []
+                # Если есть медикаменты
+                if 'medicines' in data and data['medicines']:
+                    # Перебор списка
+                    for cure in data['medicines']:
+                        # Добавляем лекарство
+                        medicines.append(cure)
+                # Если есть врачи
+                if 'doctors' in data and data['doctors']:
+                    # Перебор списка
+                    for doctor in data['doctors']:
+                        # Добавляем врача
+                        doctors.append(Doctor(doctor))
+                # Если есть диагнозы
+                if 'diagnoses' in data and data['diagnoses']:
+                    # Перебор списка
+                    for diagnosis in data['diagnoses']:
+                        # Добавляем диагнозы
+                        diagnoses.append(History.Diagnosis(diagnosis['title'], diagnosis['description'],
+                                                           diagnosis['neuralnetwork']))
+                # Если есть ответы
+                if 'answers' in data and data['answers']:
+                    # Перебор списка
+                    for answer in data['answers']:
+                        # Добавляем ответы
+                        answers.append(History.TableAnswers(self.__parseTable(0, answer['table']),
+                                                            answer['answers']))
+                # Возвращаем значение
+                return History(data['predict'], data['analyzes'], data['complaints'],
+                               data['description'], datetime.datetime.strptime(data['assigned'],
+                                                                               "%d%m%Y").date(),
+                               medicines, doctors, diagnoses, answers)
+            except Exception:
+                # Выбрасываем ошибку
+                raise self.HistoryError
+        elif isinstance(data, History):
+            # Списки
+            doctors: List[int] = []
+            diagnoses: List[dict] = []
+            answers: List[dict] = []
+            # Если есть доктора
+            if doctors is not None and doctors:
+                # Получаем ID докторов
+                for doctor in data.doctors:
+                    # Вносим ID в список
+                    doctors.append(doctor.get()['id'])
+            # Если есть диагнозы
+            if diagnoses is not None and diagnoses:
+                # Получаем диагнозы
+                for diagnosis in data.diagnoses:
+                    # Вносим диагноз в список
+                    diagnoses.append({"title": diagnosis.title, "description": diagnosis.description,
+                                      "neuralnetwork": diagnosis.neuralnetwork})
+            # Если есть диагнозы
+            if answers is not None and answers:
+                # Получаем ответы
+                for answer in data.answers:
+                    # Вносим ответы
+                    answers.append({"table": self.__parseTable(0, answer.table), "answers": answer.answers})
+            # Наполняем результат
+            return {
+                'predict': data.predict,
+                'analyzes': data.analyzes,
+                'complaints': data.complaints,
+                'description': data.description,
+                'assigned': data.assigned.strftime("%d%m%Y"),
+                'medicines': data.medicines,
+                'doctors': doctors,
+                'answers': answers
+            }
 
     # Парсинг таблицы
     def __parseTable(self, id: int, data: Union[Table, dict], allTables: bool = True) -> Union[Table, dict]:
@@ -517,69 +598,30 @@ class Patient:
                     "variants": data.variants
                 }
 
-    # Парсинг истории болезни
-    def __parseHistory(self, data: Union[History, dict]) -> Union[History, dict]:
-        # Проверка типов
-        if isinstance(data, dict):
-            try:
-                # Переменные
-                medicines: List[str] = []
-                doctors: List[Doctor] = []
-                diagnoses: List[History.Diagnosis] = []
-                answers: List[History.TableAnswers] = []
-                # Перебор списка
-                for cure in data['medicines']:
-                    # Добавляем лекарство
-                    medicines.append(cure)
-                # Перебор списка
-                for doctor in data['doctors']:
-                    # Добавляем врача
-                    doctors.append(Doctor(doctor))
-                # Перебор списка
-                for diagnosis in data['diagnoses']:
-                    # Добавляем диагнозы
-                    diagnoses.append(History.Diagnosis(diagnosis['title'], diagnosis['description'],
-                                                       diagnosis['neuralnetwork']))
-                # Перебор списка
-                for answer in data['answers']:
-                    # Добавляем ответы
-                    answers.append(History.TableAnswers(self.__parseTable(0, answer['table']), answer['answers']))
-                # Возвращаем значение
-                return History(data['predict'], data['analyzes'], data['complaints'],
-                               data['description'], datetime.datetime.strptime(data['assigned'], "%d%m%Y").date(),
-                               medicines, doctors, diagnoses, answers)
-            except Exception:
-                # Выбрасываем ошибку
-                raise self.HistoryError
-        elif isinstance(data, History):
-            # Списки
-            doctors: List[int] = []
-            diagnoses: List[dict] = []
-            answers: List[dict] = []
-            # Получаем ID докторов
-            for doctor in data.doctors:
-                # Вносим ID в список
-                doctors.append(doctor.get()['id'])
-            # Получаем диагнозы
-            for diagnosis in data.diagnoses:
-                # Вносим диагноз в список
-                diagnoses.append({"title": diagnosis.title, "description": diagnosis.description,
-                                  "neuralnetwork": diagnosis.neuralnetwork})
-            # Получаем ответы
-            for answer in data.answers:
-                # Вносим ответы
-                answers.append({"table": self.__parseTable(0, answer.table), "answers": answer.answers})
-            # Наполняем результат
-            return {
-                'predict': data.predict,
-                'analyzes': data.analyzes,
-                'complaints': data.complaints,
-                'description': data.description,
-                'assigned': data.assigned.strftime("%d%m%Y"),
-                'medicines': data.medicines,
-                'doctors': doctors,
-                'answers': answers
-            }
+    # Создание истории болезни
+    def createHistory(self, doctors: Union[List[Doctor], type(None)] = None) -> Tuple[History, sqlite3.Cursor]:
+        # Если есть доктора
+        if doctors is not None:
+            # История
+            history: History = History(doctors=doctors, assigned=datetime.datetime.today())
+            # Создаём историю
+            return history, self.updateHistory(history)
+        else:
+            # История
+            history: History = History(assigned=datetime.datetime.today())
+            # Создаём историю
+            return history, self.updateHistory(history)
+
+    # Обновление истории
+    def updateHistory(self, history: History) -> sqlite3.Cursor:
+        # История болезни
+        historyParsed: str = '"' + json.dumps(self.__parseHistory(history)).replace("\"", "\'") + '"'
+        # Обновляем историю болезни
+        result: sqlite3.Cursor = database.execute(f'UPDATE patients SET history=? WHERE id=?',
+                                                  (historyParsed, self.__id))
+        connection.commit()
+        # Возвращаем результат
+        return result
 
     # Инициализация
     def __init__(self, id: Union[int, str]):
@@ -628,14 +670,11 @@ class Patient:
             except Exception:
                 pass
             try:
-                try:
-                    # Устанавливаем переменные
-                    self.__history = self.__parseHistory(json.loads(result[6]))
-                except Exception:
-                    # Устанавливаем переменные
-                    self.__history = None
+                # Устанавливаем переменные
+                self.__history = self.__parseHistory(json.loads(result[6].replace("'", '"')[1:][:-1]))
             except Exception:
-                pass
+                # Устанавливаем переменные
+                self.__history = None
             try:
                 # Перебор ключей
                 for key in dict(json.loads(result[7])).keys():
@@ -727,11 +766,11 @@ class Patient:
         return result
 
     # Выписка пациента
-    def extract(self, doctors: List[Doctor]) -> List[sqlite3.Cursor]:
+    def extract(self, doctors: List[Doctor] = None) -> List[sqlite3.Cursor]:
         # Результат
         result: List[sqlite3.Cursor] = []
         # Если список не пустой
-        if doctors:
+        if doctors and doctors is not None:
             # Иттерация по списку
             for doctor in doctors:
                 # Выписка

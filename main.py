@@ -604,7 +604,7 @@ def callCheckPatient(call: telebot.types.Message, message: dict):
         elif case('patientExtract'):
             # Отправляем сообщение
             sendMessage('❗ <b>Внимание!</b>\n\nВрачи и администрация площадки не несут ответственности'
-                        'за ваши решения.\nПодтвердить выписку?',
+                        ' за ваши решения.\nПодтвердить выписку?',
                         message['user'], reply=apply)
             # Регистрируем событие
             bot.register_next_step_handler(call, patientHandler, message, 1)
@@ -722,6 +722,126 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
     for case in Switch(step):
         # Проверка вариантов
         if case(0):
+            # Клавиатура
+            keyboard = telebot.types.InlineKeyboardMarkup()
+            keyboard.add(
+                telebot.types.InlineKeyboardButton("💌 Выписать",
+                                                   callback_data=f"extractPatient|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}"),
+                telebot.types.InlineKeyboardButton("📃 Опросники",
+                                                   callback_data=f"answerPage|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}"),
+            )
+            keyboard.add(
+                telebot.types.InlineKeyboardButton("🤖 Подсказки ИИ | Прогноз",
+                                                   callback_data=f"ai|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|predict"),
+                telebot.types.InlineKeyboardButton("🤖 Подсказки ИИ | Диагноз",
+                                                   callback_data=f"ai|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|diagnose"),
+            )
+            keyboard.add(
+                telebot.types.InlineKeyboardButton("🤖 Подсказки ИИ | Лечение",
+                                                   callback_data=f"ai|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|medicines")
+            )
+            keyboard.add(
+                telebot.types.InlineKeyboardButton("❌ Свернуть", callback_data=f"hide")
+            )
+            # История болезни
+            history: str = (f"🚑 <b>История болезни:</b>\n\nПользователь: {patient.get()['username']}\nВозраст: "
+                            f"{patient.get()['age']}\n")
+            # Определяем пол
+            if bool(patient.get()['sex']):
+                # Добавляем пол
+                history += f'Пол: 👨 Мужской\n'
+            else:
+                # Добавляем пол
+                history += f'Пол: 👩 Женский\n'
+            # Если есть номер телефона
+            if 'phone' in patient.get() and patient.get()['phone'] is not None:
+                # Добавляем номер телефона
+                history += f'Номер телефона: {patient.get()['phone']}'
+            # Если есть история болезни
+            if patient.getHistory() is not None:
+                # Если есть прогнозы
+                if patient.getHistory().predict != 'undefined':
+                    # Добавляем прогноз
+                    history += f'Прогноз: {patient.getHistory().predict}\n'
+                # Если есть анализы
+                if patient.getHistory().analyzes != 'undefined':
+                    # Добавляем анализы
+                    history += f'Анализы: {patient.getHistory().analyzes}\n'
+                # Если есть жалобы
+                if patient.getHistory().complaints != 'undefined':
+                    # Добавляем жалобы
+                    history += f'Жалобы: {patient.getHistory().complaints}\n'
+                # Если есть описание
+                if patient.getHistory().description != 'undefined':
+                    # Добавляем жалобы
+                    history += f'История: {patient.getHistory().description}\n'
+                # Если есть список назначений
+                if patient.getHistory().medicines:
+                    # Добавляем запись
+                    history += f'\n<b>Медикаменты:</b>\n'
+                    # Иттерация по медекаментам
+                    for medic in range(0, len(patient.getHistory().medicines)):
+                        # Вносим лекарство
+                        history += f'{medic}. {patient.getHistory().medicines[medic]}\n'
+                    # Вносим отступ
+                    history += '\n'
+                # Если есть диагнозы
+                if patient.getHistory().diagnoses:
+                    # Иттератор
+                    itterator: int = 0
+                    # Добавляем запись
+                    history += f'\n<b>Диагнозы:</b>\n'
+                    # Иттерация по диагнозам
+                    for diagnosis in patient.getHistory().diagnoses:
+                        # Прибавляем иттератор
+                        itterator += 1
+                        # Если не натуральный
+                        if diagnosis.neuralnetwork:
+                            # Вносим диагноз
+                            history += (f'{itterator}. <b>{diagnosis.title}</b>\n{diagnosis.description}\n'
+                                        f'<b>Диагноз выставлен нейросетью!</b>\n')
+                        else:
+                            # Вносим диагноз
+                            history += f'{itterator}. <b>{diagnosis.title}</b>\n{diagnosis.description}'
+                    # Вносим отступ
+                    history += '\n'
+            # Врачи
+            doctors: List[Doctor] = []
+            # Иттерация по пользователям
+            for user in getAllUserList():
+                # Если пользователь врач и у него есть пациенты
+                if isinstance(user, Doctor) and user.getPatients():
+                    # Иттерация по пациентам
+                    for patientUser in user.getPatients():
+                        # Если ID совпали
+                        if patientUser.get()['id'] == patient.get()['id']:
+                            # Вносим врача
+                            doctors.append(user)
+                            # Ломаем иттерацию
+                            break
+            # Если есть врачи
+            if doctors:
+                # Добавляем запись
+                history += f'\n<b>Лечащие врачи:</b>\n'
+                # Иттерация по врачам
+                for i in range(0, len(doctors)):
+                    # Вносим врача
+                    history += (f'{i+1}. [{doctors[i].get()["id"]}] {doctors[i].get()["username"]} '
+                                f'[{doctors[i].get()["qualification"]}]\n')
+                # Вносим отступ
+                history += '\n'
+            # Если есть время поступления и история болезни заведена
+            if patient.getHistory().assigned is not None and patient.getHistory() is not None:
+                # Добавляем время поступления
+                history += (f'Время поступления: {patient.getHistory().assigned.day}.'
+                            f'{patient.getHistory().assigned.month}.{patient.getHistory().assigned.year}')
+            # Отправляем сообщение
+            sendMessage(history, doctor, reply=keyboard)
             # Ломаем функцию
             break
 
@@ -1139,15 +1259,26 @@ def registerPatient(message, step: int = 0, invited: Doctor = None):
             ram[message.from_user.id]['sex'] = 'мужской' in message.text.lower()
             try:
                 # Создаём пользователя
-                Patient(message.from_user.id).create(ram[message.from_user.id]['name'],
-                                                     ram[message.from_user.id]['age'],
-                                                     ram[message.from_user.id]['sex'], invited,
-                                                     ram[message.from_user.id]['lang'],
-                                                     ram[message.from_user.id]['phone'])
+                patient: Patient = Patient(message.from_user.id)
+                # Создаём пациента
+                patient.create(ram[message.from_user.id]['name'],
+                               ram[message.from_user.id]['age'],
+                               ram[message.from_user.id]['sex'], invited,
+                               ram[message.from_user.id]['lang'],
+                               ram[message.from_user.id]['phone'])
+                # Если есть пригласивший
+                if invited is not None:
+                    # Создаём историю
+                    patient.createHistory([invited])
+                else:
+                    # Создаём историю
+                    patient.createHistory()
                 # Отправляем сообщение
                 sendMessage('✔ Аккаунт успешно зарегистрирован!', message.chat.id,
                             ram[message.from_user.id]['lang'], reply=telebot.types.ReplyKeyboardRemove())
             except Exception as e:
+                # Удаляем аккаунт
+                getUser(message.chat.id).extract()
                 # Отправляем сообщение
                 sendMessage(f'❌ Ошибка при регистрации!\n\n💬 Ошибка: {e}', message.chat.id,
                             ram[message.from_user.id]['lang'], reply=telebot.types.ReplyKeyboardRemove())
