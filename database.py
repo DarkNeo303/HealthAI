@@ -63,6 +63,7 @@ class Operations(Enum):
     MakeAdmin = 0
     Contact = 1
     AnonContactFind = 2
+    ChangeMe = 3
 
 
 # Тип данных таблицы

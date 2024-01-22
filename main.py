@@ -100,15 +100,23 @@ def doctorHandler(call: telebot.types.Message, message: dict, step: int = 0):
             # Ломаем блок
             break
         elif case(2):
+            # Если подтверждение
+            if 'подтвердить' in call.text.lower():
+                # Создаём операцию
+                ram[message['user'].get('id')] = {
+                    'type': 'system',
+                    'operation': Operations.ChangeMe
+                }
+                # Отправляем сообщение
+                sendMessage('🤔 Пришлите фотографию на рассмотрение', message['user'],
+                            reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                # Отправляем сообщение
+                sendMessage('❌ Смена документа отменена!', message['user'],
+                            reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем блок
             break
-        elif case(3):
-            # Ломаем блок
-            break
-        elif case(4):
-            # Ломаем блок
-            break
-        elif case(5):
+        elif case():
             # Ломаем блок
             break
 
@@ -442,7 +450,11 @@ def callCheckDoctor(call: telebot.types.Message, message: dict):
                     keyboard.add(
                         telebot.types.InlineKeyboardButton(f"🤕 {patient.get()['username']}",
                                                            callback_data=f"callFromTo|{message['user'].get()['id']}|"
-                                                                         f"{patient.get()['id']}"))
+                                                                         f"{patient.get()['id']}"),
+                        telebot.types.InlineKeyboardButton(f"❤️‍🩹 Назначить лечение",
+                                                           callback_data=f"healCabinet|{message['user'].get()['id']}|"
+                                                                         f"{patient.get()['id']}")
+                    )
             else:
                 # Отправляем сообщение
                 sendMessage('❣ У Вас пока нет пациентов', message['user'])
@@ -492,9 +504,30 @@ def callCheckDoctor(call: telebot.types.Message, message: dict):
             # Ломаем блок
             break
         elif case('changePhoto'):
+            # Информируем пользователя
+            sendMessage('‼ <b>Внимание!</b>\nВаш документ будет изменён и перепроверен. '
+                        'Такой документ имеет шанс не пройти проверку!\n Продолжить операцию?', message['user'],
+                        reply=apply)
+            # Создаём операцию
+            bot.register_next_step_handler(call, doctorHandler, message, 2)
             # Ломаем блок
             break
         elif case('doctorKick'):
+            # Клавиатура
+            keyboard = telebot.types.InlineKeyboardMarkup()
+            # Если есть подчинённые
+            if message['user'].getSubordinates():
+                # Иттерация по подчинённым
+                for doctor in message['user'].getSubordinates():
+                    # Вносим врача в клавиатуру
+                    keyboard.add(
+                        telebot.types.InlineKeyboardButton(f"👨‍⚕️ {doctor.get()['username']}",
+                                                           callback_data=f"kickDoctorDoctor|"
+                                                                         f"{message['user'].get()['id']}|"
+                                                                         f"{doctor.get()['id']}"))
+            else:
+                # Отправляем сообщение
+                sendMessage('😥 У Вас пока нет подчинённых', message['user'])
             # Ломаем блок
             break
         elif case():
@@ -689,7 +722,8 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
     # Удаляем сообщение
     bot.delete_message(call.message.chat.id, call.message.id)
     # Указываем значение по умолчанию
-    defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo", "kickPatientDoctor", "kickDoctorPatient"]
+    defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo", "kickPatientDoctor",
+                                  "kickDoctorPatient", "kickDoctorDoctor", "healCabinet"]
     # Пользователь
     user: Union[Patient, Doctor, type(None)] = None
     try:
@@ -745,7 +779,8 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                     break
                 elif case(defaultArgs[3]):
                     # Если пациент существует
-                    if getUser(int(message["params"][1])) is not None:
+                    if (getUser(int(message["params"][1])) is not None and
+                            isinstance(getUser(int(message["params"][1])), Patient)):
                         # Иттерация по пациентам
                         for patient in message['user'].getPatients():
                             # Если ID совпали
@@ -759,6 +794,30 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                                             getUser(int(message["params"][1])))
                                 # Возвращаем значение
                                 return None
+                    # Ломаем цикл
+                    break
+                elif case(defaultArgs[4]):
+                    # Если врач существует
+                    if (getUser(int(message["params"][1])) is not None and
+                            isinstance(getUser(int(message["params"][1])), Doctor) and
+                            message['user'].getSubordinates()):
+                        # Врач
+                        kicked: Doctor = None
+                        # Иттерация по врачам
+                        for doctor in message['user'].getSubordinates():
+                            # Если ID совпали
+                            if doctor.get()['id'] == getUser(int(message["params"][1])).get()['id']:
+                                # Запоминаем врача
+                                kicked = doctor
+                        # Удаляем врача
+                        message['user'].update(Doctor.Types.subordinates, kicked)
+                        # Информируем пользователей
+                        sendMessage(f'😥 Вы отказались от доктора {kicked.get()["username"]}', message['user'])
+                        sendMessage(f'💥 От Вас отказался руководитель {message['user'].get()["username"]}',
+                                    message['user'])
+                    else:
+                        # Отправляем сообщение
+                        sendMessage('😥 У Вас пока нет подчинённых', message['user'])
                     # Ломаем цикл
                     break
             # Возвращаем значение
@@ -1460,9 +1519,45 @@ def profile(message):
 def photoHandler(message):
     try:
         # Если пользователь в оперативной памяти
-        if message.from_user.id in ram.keys() and ram[message.from_user.id]['document'] is None:
+        if (message.from_user.id in ram.keys() or str(message.from_user.id) in ram.keys()
+                and ram[message.from_user.id]['document'] is None):
+            # Если смена документа
+            if ((ram[message.from_user.id]['type'] == 'system' and
+                    ram[message.from_user.id]['operation'] == Operations.ChangeMe) and
+                    isinstance(getUser(message.from_user.id), Doctor)):
+                # Отправляем сообщение
+                sendMessage("👌 Сканирование документа...", getUser(message.from_user.id))
+                # Удаляем запрос
+                ram.pop(message.from_user.id)
+                # Проверка фотографии
+                if ai.checkDocument(ai.ImageRecognize(bot.download_file(bot.get_file(
+                        message.photo[-1].file_id).file_path)).textRecognize()):
+                    # Обновление пользователя
+                    getUser(message.from_user.id).update(Doctor.Types.document, bot.download_file(
+                        bot.get_file(message.photo[-1].file_id).file_path))
+                    # Отправляем сообщение
+                    sendMessage('✔ Документ одобрен и записан в профиль!',
+                                getUser(message.from_user.id), reply=telebot.types.ReplyKeyboardRemove())
+                else:
+                    # Объект Message
+                    call: dict = {
+                        'user': getUser(message.from_user.id)
+                    }
+                    # Клавиатура
+                    keyboard = telebot.types.InlineKeyboardMarkup()
+                    keyboard.add(telebot.types.InlineKeyboardButton(text="💬 Обратная связь", url=os.getenv('ADMIN')))
+                    # Отправляем сообщение
+                    sendMessage('❌ Отказано в смене документа!\n\n☝ Если Вы считаете результат работы сети'
+                                'некорректным, обратитесь за помощью к модерации или разработчикам',
+                                getUser(message.from_user.id), reply=keyboard)
+                    # Информируем пользователя
+                    sendMessage('‼ <b>Внимание!</b>\nВаш документ будет изменён и перепроверен. '
+                                'Такой документ имеет шанс не пройти проверку!\n Продолжить операцию?',
+                                getUser(message.from_user.id), reply=apply)
+                    # Создаём операцию
+                    bot.register_next_step_handler(message, doctorHandler, call, 2)
             # Если необходима верефикация
-            if stringToBool(os.getenv('VERIFY')):
+            elif stringToBool(os.getenv('VERIFY')):
                 # Отправляем сообщение
                 sendMessage("👌 Сканирование документа...", message.chat.id, ram[message.from_user.id]['lang'])
                 # Проверка фотографии
