@@ -746,6 +746,11 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                                                                  f"{patient.get()['id']}|5")
             )
             keyboard.add(
+                telebot.types.InlineKeyboardButton("💰 Выставить счёт",
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|6")
+            )
+            keyboard.add(
                 telebot.types.InlineKeyboardButton("❌ Свернуть", callback_data=f"hide")
             )
             # История болезни
@@ -849,7 +854,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             sendMessage(f'🤔 Вы уверены в том, что хотите выписать пациента {patient.get()["username"]}?',
                         doctor, reply=apply)
             # Регистрируем следующий шаг
-            bot.register_message_handler(message, healCabinet, doctor, patient, 6)
+            bot.register_message_handler(message, healCabinet, doctor, patient, 7)
             # Ломаем функцию
             break
         elif case(2):
@@ -865,6 +870,9 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             # Ломаем функцию
             break
         elif case(6):
+            # Ломаем функцию
+            break
+        elif case(7):
             # Проверка ответа
             if 'подтвердить' in message.text.lower():
                 # Врачи
