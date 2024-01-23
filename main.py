@@ -854,7 +854,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             sendMessage(f'🤔 Вы уверены в том, что хотите выписать пациента {patient.get()["username"]}?',
                         doctor, reply=apply)
             # Регистрируем следующий шаг
-            bot.register_message_handler(message, healCabinet, doctor, patient, 7)
+            bot.register_next_step_handler(message, healCabinet, doctor, patient, 7)
             # Ломаем функцию
             break
         elif case(2):
@@ -887,6 +887,8 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                             if patient.get()['id'] == userPatient.get()['id']:
                                 # Вносим врача
                                 doctors.append(user)
+                                # Выписываем пациента
+                                user.update(Doctor.Types.patients, patient)
                                 # Отсылаем сообщение
                                 sendMessage(f'✔ Пациент {patient.get()["username"]} был выписан врачём '
                                             f'{doctor.get()["username"]}', user)
@@ -1020,10 +1022,14 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                                 # Если нету аргументов
                                 if len(message['params']) < 3:
                                     # Передаём параметры в функцию
-                                    healCabinet(call, message['user'], getUser(int(message['params'][1])))
+                                    healCabinet(sendMessage('👌 Открываем медицинскую карту...',
+                                                            message['user']), message['user'],
+                                                getUser(int(message['params'][1])))
                                 else:
                                     # Передаём параметры в функцию
-                                    healCabinet(call, message['user'], getUser(int(message['params'][1])),
+                                    healCabinet(sendMessage('👌 Открываем медицинскую карту...',
+                                                            message['user']),
+                                                message['user'], getUser(int(message['params'][1])),
                                                 int(message['params'][2]))
                                 # Ломаем иттерацию
                                 return None
@@ -1688,14 +1694,33 @@ def profile(message):
             # Получаем историю
             history: History = user.getHistory()
             # Сообщение
-            msg: str = f'🤕 <b>История болезни:</b>\n\nОписание: {history.description}\nЖалобы: '
-            f'{history.complaints}\nИстория заведена: {history.assigned}'
+            msg: str = "🤕 <b>История болезни:</b>\n\n"
+            # Если есть описание
+            if history.description != 'undefined':
+                # Если есть жалобы
+                if history.complaints != 'undefined' and history.complaints != '':
+                    # Сообщение
+                    msg = f'🤕 <b>История болезни:</b>\n\nОписание: {history.description}\nЖалобы: '
+                    f'{history.complaints}\nИстория заведена: {history.assigned}'
+                else:
+                    # Сообщение
+                    msg = (f'🤕 <b>История болезни:</b>\n\nОписание: {history.description}\n'
+                           f'История заведена: {history.assigned}')
+            else:
+                # Если есть жалобы
+                if history.complaints != 'undefined' and history.complaints != '':
+                    # Сообщение
+                    msg = (f'🤕 <b>История болезни:</b>\n\nЖалобы: {history.complaints}\n'
+                           f'История заведена: {history.assigned}')
+                else:
+                    # Сообщение
+                    msg = f'🤕 <b>История болезни:</b>\n\nИстория заведена: {history.assigned}'
             # Если есть анализы
             if history.analyzes != 'undefined':
                 # Формируем сообщение
                 msg += f'\nАнализы: {history.analyzes}'
             # Если есть медикаменты
-            if history.medicines != 'undefined':
+            if history.medicines != 'undefined' and history.medicines:
                 # Формируем сообщение
                 msg += f'\nНазначенные медикаменты: {history.medicines}'
             # Отсылаем историю
