@@ -1891,6 +1891,15 @@ def help(message):
 # Холдер команды перезапуска
 @bot.message_handler(commands=['reset'])
 def reset(message):
+    try:
+        # Удаляем пользователя из ОЗУ
+        ram.pop(message.from_user.id)
+    except KeyError:
+        try:
+            # Удаляем пользователя из ОЗУ
+            ram.pop(getUser(message.from_user.id).get()['message'])
+        except KeyError:
+            pass
     # Отправляем сообщение, удаляя клавиатуру
     sendMessage(f'👌 <b>Бот перезапущен!</b>\n\n👇 Сообщите <a href="{os.getenv("ADMIN")}">разработчику</a> '
                 f'о причине перезапуска', getUser(message.from_user.id), reply=telebot.types.ReplyKeyboardRemove())
