@@ -1693,28 +1693,26 @@ def profile(message):
         if user.getHistory() is not None:
             # Получаем историю
             history: History = user.getHistory()
-            # Сообщение
-            msg: str = "🤕 <b>История болезни:</b>\n\n"
             # Если есть описание
             if history.description != 'undefined':
                 # Если есть жалобы
                 if history.complaints != 'undefined' and history.complaints != '':
                     # Сообщение
-                    msg = f'🤕 <b>История болезни:</b>\n\nОписание: {history.description}\nЖалобы: '
+                    msg: str = f'🤕 <b>История болезни:</b>\n\nОписание: {history.description}\nЖалобы: '
                     f'{history.complaints}\nИстория заведена: {history.assigned}'
                 else:
                     # Сообщение
-                    msg = (f'🤕 <b>История болезни:</b>\n\nОписание: {history.description}\n'
-                           f'История заведена: {history.assigned}')
+                    msg: str = (f'🤕 <b>История болезни:</b>\n\nОписание: {history.description}\n'
+                                f'История заведена: {history.assigned}')
             else:
                 # Если есть жалобы
                 if history.complaints != 'undefined' and history.complaints != '':
                     # Сообщение
-                    msg = (f'🤕 <b>История болезни:</b>\n\nЖалобы: {history.complaints}\n'
-                           f'История заведена: {history.assigned}')
+                    msg: str = (f'🤕 <b>История болезни:</b>\n\nЖалобы: {history.complaints}\n'
+                                f'История заведена: {history.assigned}')
                 else:
                     # Сообщение
-                    msg = f'🤕 <b>История болезни:</b>\n\nИстория заведена: {history.assigned}'
+                    msg: str = f'🤕 <b>История болезни:</b>\n\nИстория заведена: {history.assigned}'
             # Если есть анализы
             if history.analyzes != 'undefined':
                 # Формируем сообщение
@@ -1888,6 +1886,14 @@ def help(message):
     # Отправляем сообщение
     sendMessage(f'🤗 <b>Помощь по боту</b>\n\n👇 <a href="{os.getenv("HELP")}">Кликни на меня</a>',
                 getUser(message.from_user.id))
+
+
+# Холдер команды перезапуска
+@bot.message_handler(commands=['reset'])
+def reset(message):
+    # Отправляем сообщение, удаляя клавиатуру
+    sendMessage(f'👌 <b>Бот перезапущен!</b>\n\n👇 Сообщите <a href="{os.getenv("ADMIN")}">разработчику</a> '
+                f'о причине перезапуска', getUser(message.from_user.id), reply=telebot.types.ReplyKeyboardRemove())
 
 
 # Холдер команды списка
