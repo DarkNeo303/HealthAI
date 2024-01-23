@@ -831,7 +831,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Иттерация по врачам
                 for i in range(0, len(doctors)):
                     # Вносим врача
-                    history += (f'{i+1}. [{doctors[i].get()["id"]}] {doctors[i].get()["username"]} '
+                    history += (f'{i + 1}. [{doctors[i].get()["id"]}] {doctors[i].get()["username"]} '
                                 f'[{doctors[i].get()["qualification"]}]\n')
                 # Вносим отступ
                 history += '\n'
@@ -845,6 +845,11 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             # Ломаем функцию
             break
         elif case(1):
+            # Отсылаем сообщение
+            sendMessage(f'🤔 Вы уверены в том, что хотите выписать пациента {patient.get()["username"]}?',
+                        doctor, reply=apply)
+            # Регистрируем следующий шаг
+            bot.register_message_handler(message, healCabinet, doctor, patient, 6)
             # Ломаем функцию
             break
         elif case(2):
@@ -857,6 +862,35 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             # Ломаем функцию
             break
         elif case(5):
+            # Ломаем функцию
+            break
+        elif case(6):
+            # Проверка ответа
+            if 'подтвердить' in message.text.lower():
+                # Врачи
+                doctors: List[Doctor] = [doctor]
+                # Иттерация по врачам
+                for user in getAllUserList():
+                    # Если пациент на учёте у пользователя
+                    if isinstance(user, Doctor) and user.getPatients():
+                        # Иттерация по пациентам
+                        for userPatient in user.getPatients():
+                            # Если ID совпали
+                            if patient.get()['id'] == userPatient.get()['id']:
+                                # Вносим врача
+                                doctors.append(user)
+                                # Отсылаем сообщение
+                                sendMessage(f'✔ Пациент {patient.get()["username"]} был выписан врачём '
+                                            f'{doctor.get()["username"]}', user)
+                # Отсылаем сообщения
+                sendMessage(f'✔ Пациент {patient.get()["username"]} был выписан', doctor,
+                            reply=telebot.types.ReplyKeyboardRemove())
+                sendMessage(f'💥 Вы были выписаны врачём {doctor.get()["username"]}', patient)
+                # Выписываем пациента
+                patient.extract(doctors)
+            else:
+                # Отсылаем сообщение
+                sendMessage(f'❌ Выписка отменена', doctor, reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем функцию
             break
         elif case():
