@@ -726,24 +726,24 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             keyboard = telebot.types.InlineKeyboardMarkup()
             keyboard.add(
                 telebot.types.InlineKeyboardButton("💌 Выписать",
-                                                   callback_data=f"extractPatient|{doctor.get()['id']}|"
-                                                                 f"{patient.get()['id']}"),
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|1"),
                 telebot.types.InlineKeyboardButton("📃 Опросники",
-                                                   callback_data=f"answerPage|{doctor.get()['id']}|"
-                                                                 f"{patient.get()['id']}"),
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|2"),
             )
             keyboard.add(
                 telebot.types.InlineKeyboardButton("🤖 Подсказки ИИ | Прогноз",
-                                                   callback_data=f"ai|{doctor.get()['id']}|"
-                                                                 f"{patient.get()['id']}|predict"),
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|3"),
                 telebot.types.InlineKeyboardButton("🤖 Подсказки ИИ | Диагноз",
-                                                   callback_data=f"ai|{doctor.get()['id']}|"
-                                                                 f"{patient.get()['id']}|diagnose"),
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|4"),
             )
             keyboard.add(
                 telebot.types.InlineKeyboardButton("🤖 Подсказки ИИ | Лечение",
-                                                   callback_data=f"ai|{doctor.get()['id']}|"
-                                                                 f"{patient.get()['id']}|medicines")
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|5")
             )
             keyboard.add(
                 telebot.types.InlineKeyboardButton("❌ Свернуть", callback_data=f"hide")
@@ -842,6 +842,24 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                             f'{patient.getHistory().assigned.month}.{patient.getHistory().assigned.year}')
             # Отправляем сообщение
             sendMessage(history, doctor, reply=keyboard)
+            # Ломаем функцию
+            break
+        elif case(1):
+            # Ломаем функцию
+            break
+        elif case(2):
+            # Ломаем функцию
+            break
+        elif case(3):
+            # Ломаем функцию
+            break
+        elif case(4):
+            # Ломаем функцию
+            break
+        elif case(5):
+            # Ломаем функцию
+            break
+        elif case():
             # Ломаем функцию
             break
 
