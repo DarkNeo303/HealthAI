@@ -1917,6 +1917,25 @@ def help(message):
                 getUser(message.from_user.id))
 
 
+# Холдер команды справочной
+@bot.message_handler(commands=['search', 'inquiry'])
+def inquiry(message):
+    # Разделитель
+    sepparator: str = ' '
+    # Если аргументов достаточно
+    if len(message.text.split()) > 1:
+        # Отправляем сообщение
+        sendMessage(f'🤔 Ожидаем ответа...', getUser(message.from_user.id))
+        # Устанавливаем статус
+        bot.send_chat_action(message.chat.id, 'typing')
+        # Отправляем сообщение
+        sendMessage(f'👌 По вашему запросу найдено: {ai.getResponse(f"Составь ответ на вопрос: "
+                    f"{sepparator.join(message.text.split()[1:])}")}', getUser(message.from_user.id))
+    else:
+        # Отправляем сообщение
+        sendMessage(f'☝ Недостаточно аргументов', getUser(message.from_user.id))
+
+
 # Холдер команды перезапуска
 @bot.message_handler(commands=['reset'])
 def reset(message):
