@@ -43,7 +43,7 @@ database.execute('''
 # Создание таблицы премиума
 database.execute('''
     CREATE TABLE IF NOT EXISTS premium (
-        id INTEGER PRIMARY KEY NOT NULL UNIQUIE,
+        id INTEGER PRIMARY KEY NOT NULL UNIQUE,
         experies VARCHAR(255)
     )
 ''')

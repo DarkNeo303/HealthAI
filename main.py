@@ -1665,74 +1665,145 @@ def profile(message):
             telebot.types.InlineKeyboardButton("🤝 Скопировать ссылку-приглашение",
                                                callback_data=f'sendSelfLink|{user.get()['id']}')
         )
-        # Если есть вылеченные
-        if user.get()["discharged"] is not None:
-            # Если указан телефон
-            if 'phone' in user.get() and user.get()['phone'] is not None:
-                # Если есть фото
-                if user.get()['document'] is not None:
-                    # Отсылаем анкету
-                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
-                                f'{user.get()["username"]}'
-                                f'\nТелефон: {user.get()["phone"]}\nКвалификация: '
-                                f'{user.get()["qualification"]}'
-                                f'\nВылеченные: {user.get()["discharged"]}', message.chat.id, user,
-                                photo=user.get()['document'], reply=keyboard)
+        # Если есть премиум
+        if user.isPremium():
+            # Если есть вылеченные
+            if user.get()["discharged"] is not None:
+                # Если указан телефон
+                if 'phone' in user.get() and user.get()['phone'] is not None:
+                    # Если есть фото
+                    if user.get()['document'] is not None:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\n💎 Премиум: Активен\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: {user.get()["phone"]}\nКвалификация: '
+                                    f'{user.get()["qualification"]}'
+                                    f'\nВылеченные: {user.get()["discharged"]}', message.chat.id, user,
+                                    photo=user.get()['document'], reply=keyboard)
+                    else:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\n💎 Премиум: Активен\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: {user.get()["phone"]}\nКвалификация: '
+                                    f'{user.get()["qualification"]}\nВылеченные: {user.get()["discharged"]}',
+                                    message.chat.id, user, reply=keyboard)
                 else:
-                    # Отсылаем анкету
-                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
-                                f'{user.get()["username"]}'
-                                f'\nТелефон: {user.get()["phone"]}\nКвалификация: '
-                                f'{user.get()["qualification"]}\nВылеченные: {user.get()["discharged"]}',
-                                message.chat.id, user, reply=keyboard)
+                    # Если есть фото
+                    if user.get()['document'] is not None:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:/<b>\n\nСтатус: Врач\n💎 Премиум: Активен\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: ❌ Не указан\nКвалификация: {user.get()["qualification"]}\n'
+                                    f'Вылеченные: {user.get()["discharged"]}',
+                                    message.chat.id, user, photo=user.get()['document'], reply=keyboard)
+                    else:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\n💎 Премиум: Активен\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: ❌ Не указан\nКвалификация: {user.get()["qualification"]}\n'
+                                    f'Вылеченные: {user.get()["discharged"]}',
+                                    message.chat.id, user, reply=keyboard)
             else:
-                # Если есть фото
-                if user.get()['document'] is not None:
-                    # Отсылаем анкету
-                    sendMessage(f'💬 <b>Ваш профиль:/<b>\n\nСтатус: Врач\nИмя: '
-                                f'{user.get()["username"]}'
-                                f'\nТелефон: ❌ Не указан\nКвалификация: {user.get()["qualification"]}\n'
-                                f'Вылеченные: {user.get()["discharged"]}',
-                                message.chat.id, user, photo=user.get()['document'], reply=keyboard)
+                # Если указан телефон
+                if 'phone' in user.get() and user.get()['phone'] is not None:
+                    # Если есть фото
+                    if user.get()['document'] is not None:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\n💎 Премиум: Активен\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: {user.get()["phone"]}\nКвалификация: '
+                                    f'{user.get()["qualification"]}', message.chat.id, user,
+                                    photo=user.get()['document'],
+                                    reply=keyboard)
+                    else:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\n💎 Премиум: Активен\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: {user.get()["document"]}\nКвалификация: '
+                                    f'{user.get()["qualification"]}', message.chat.id, user, reply=keyboard)
                 else:
-                    # Отсылаем анкету
-                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
-                                f'{user.get()["username"]}'
-                                f'\nТелефон: ❌ Не указан\nКвалификация: {user.get()["qualification"]}\n'
-                                f'Вылеченные: {user.get()["discharged"]}',
-                                message.chat.id, user, reply=keyboard)
+                    # Если есть фото
+                    if user.get()['document'] is not None:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:/<b>\n\nСтатус: Врач\n💎 Премиум: Активен\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: ❌ Не указан\nКвалификация: {user.get()["qualification"]}',
+                                    message.chat.id, user, photo=user.get()['document'], reply=keyboard)
+                    else:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\n💎 Премиум: Активен\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: ❌ Не указан\nКвалификация: {user.get()["qualification"]}',
+                                    message.chat.id, user, reply=keyboard)
         else:
-            # Если указан телефон
-            if 'phone' in user.get() and user.get()['phone'] is not None:
-                # Если есть фото
-                if user.get()['document'] is not None:
-                    # Отсылаем анкету
-                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
-                                f'{user.get()["username"]}'
-                                f'\nТелефон: {user.get()["phone"]}\nКвалификация: '
-                                f'{user.get()["qualification"]}', message.chat.id, user,
-                                photo=user.get()['document'],
-                                reply=keyboard)
+            # Если есть вылеченные
+            if user.get()["discharged"] is not None:
+                # Если указан телефон
+                if 'phone' in user.get() and user.get()['phone'] is not None:
+                    # Если есть фото
+                    if user.get()['document'] is not None:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: {user.get()["phone"]}\nКвалификация: '
+                                    f'{user.get()["qualification"]}'
+                                    f'\nВылеченные: {user.get()["discharged"]}', message.chat.id, user,
+                                    photo=user.get()['document'], reply=keyboard)
+                    else:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: {user.get()["phone"]}\nКвалификация: '
+                                    f'{user.get()["qualification"]}\nВылеченные: {user.get()["discharged"]}',
+                                    message.chat.id, user, reply=keyboard)
                 else:
-                    # Отсылаем анкету
-                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
-                                f'{user.get()["username"]}'
-                                f'\nТелефон: {user.get()["document"]}\nКвалификация: '
-                                f'{user.get()["qualification"]}', message.chat.id, user, reply=keyboard)
+                    # Если есть фото
+                    if user.get()['document'] is not None:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:/<b>\n\nСтатус: Врач\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: ❌ Не указан\nКвалификация: {user.get()["qualification"]}\n'
+                                    f'Вылеченные: {user.get()["discharged"]}',
+                                    message.chat.id, user, photo=user.get()['document'], reply=keyboard)
+                    else:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: ❌ Не указан\nКвалификация: {user.get()["qualification"]}\n'
+                                    f'Вылеченные: {user.get()["discharged"]}',
+                                    message.chat.id, user, reply=keyboard)
             else:
-                # Если есть фото
-                if user.get()['document'] is not None:
-                    # Отсылаем анкету
-                    sendMessage(f'💬 <b>Ваш профиль:/<b>\n\nСтатус: Врач\nИмя: '
-                                f'{user.get()["username"]}'
-                                f'\nТелефон: ❌ Не указан\nКвалификация: {user.get()["qualification"]}',
-                                message.chat.id, user, photo=user.get()['document'], reply=keyboard)
+                # Если указан телефон
+                if 'phone' in user.get() and user.get()['phone'] is not None:
+                    # Если есть фото
+                    if user.get()['document'] is not None:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: {user.get()["phone"]}\nКвалификация: '
+                                    f'{user.get()["qualification"]}', message.chat.id, user,
+                                    photo=user.get()['document'],
+                                    reply=keyboard)
+                    else:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: {user.get()["document"]}\nКвалификация: '
+                                    f'{user.get()["qualification"]}', message.chat.id, user, reply=keyboard)
                 else:
-                    # Отсылаем анкету
-                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
-                                f'{user.get()["username"]}'
-                                f'\nТелефон: ❌ Не указан\nКвалификация: {user.get()["qualification"]}',
-                                message.chat.id, user, reply=keyboard)
+                    # Если есть фото
+                    if user.get()['document'] is not None:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:/<b>\n\nСтатус: Врач\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: ❌ Не указан\nКвалификация: {user.get()["qualification"]}',
+                                    message.chat.id, user, photo=user.get()['document'], reply=keyboard)
+                    else:
+                        # Отсылаем анкету
+                        sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Врач\nИмя: '
+                                    f'{user.get()["username"]}'
+                                    f'\nТелефон: ❌ Не указан\nКвалификация: {user.get()["qualification"]}',
+                                    message.chat.id, user, reply=keyboard)
         # Если есть подчинённые
         if user.getSubordinates():
             # Сообщение
@@ -1768,31 +1839,63 @@ def profile(message):
             telebot.types.InlineKeyboardButton("💔 Отказаться от врача",
                                                callback_data=f"patientDoctorKick|{user.get()['id']}"),
         )
-        # Если указан телефон
-        if 'phone' in user.get():
-            # Если мужской пол
-            if user.get()['sex']:
-                # Отсылаем анкету
-                sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Пациент\nИмя: {user.get()["username"]}'
-                            f'\nТелефон: ❌ Не указан\nВозраст: {user.get()["age"]}\nПол: 👨 Мужской',
-                            message.chat.id, user, reply=keyboard)
+        # Если есть премиум
+        if user.isPremium():
+            # Если указан телефон
+            if 'phone' in user.get():
+                # Если мужской пол
+                if user.get()['sex']:
+                    # Отсылаем анкету
+                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Пациент\n💎 Премиум: Активен'
+                                f'\nИмя: {user.get()["username"]}'
+                                f'\nТелефон: ❌ Не указан\nВозраст: {user.get()["age"]}\nПол: 👨 Мужской',
+                                message.chat.id, user, reply=keyboard)
+                else:
+                    # Отсылаем анкету
+                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Пациент\n💎 Премиум: Активен'
+                                f'\nИмя: {user.get()["username"]}'
+                                f'\nТелефон: ❌ Не указан\nВозраст: {user.get()["age"]}\nПол: 👩 Женский',
+                                message.chat.id, user, reply=keyboard)
             else:
-                # Отсылаем анкету
-                sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Пациент\nИмя: {user.get()["username"]}'
-                            f'\nТелефон: ❌ Не указан\nВозраст: {user.get()["age"]}\nПол: 👩 Женский',
-                            message.chat.id, user, reply=keyboard)
+                # Если мужской пол
+                if user.get()['sex']:
+                    # Отсылаем анкету
+                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Пациент\n💎 Премиум: Активен'
+                                f'\nИмя: {user.get()["username"]}'
+                                f'\nТелефон: ❌ Не указан\nВозраст: {user.get()["age"]}\nПол: 👨 Мужской',
+                                message.chat.id, user, reply=keyboard)
+                else:
+                    # Отсылаем анкету
+                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Пациент\n💎 Премиум: Активен'
+                                f'\nИмя: {user.get()["username"]}'
+                                f'\nТелефон: ❌ Не указан\nВозраст: {user.get()["age"]}\nПол: 👩 Женский',
+                                message.chat.id, user, reply=keyboard)
         else:
-            # Если мужской пол
-            if user.get()['sex']:
-                # Отсылаем анкету
-                sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Пациент\nИмя: {user.get()["username"]}'
-                            f'\nТелефон: ❌ Не указан\nВозраст: {user.get()["age"]}\nПол: 👨 Мужской',
-                            message.chat.id, user, reply=keyboard)
+            # Если указан телефон
+            if 'phone' in user.get():
+                # Если мужской пол
+                if user.get()['sex']:
+                    # Отсылаем анкету
+                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Пациент\nИмя: {user.get()["username"]}'
+                                f'\nТелефон: ❌ Не указан\nВозраст: {user.get()["age"]}\nПол: 👨 Мужской',
+                                message.chat.id, user, reply=keyboard)
+                else:
+                    # Отсылаем анкету
+                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Пациент\nИмя: {user.get()["username"]}'
+                                f'\nТелефон: ❌ Не указан\nВозраст: {user.get()["age"]}\nПол: 👩 Женский',
+                                message.chat.id, user, reply=keyboard)
             else:
-                # Отсылаем анкету
-                sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Пациент\nИмя: {user.get()["username"]}'
-                            f'\nТелефон: ❌ Не указан\nВозраст: {user.get()["age"]}\nПол: 👩 Женский',
-                            message.chat.id, user, reply=keyboard)
+                # Если мужской пол
+                if user.get()['sex']:
+                    # Отсылаем анкету
+                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Пациент\nИмя: {user.get()["username"]}'
+                                f'\nТелефон: ❌ Не указан\nВозраст: {user.get()["age"]}\nПол: 👨 Мужской',
+                                message.chat.id, user, reply=keyboard)
+                else:
+                    # Отсылаем анкету
+                    sendMessage(f'💬 <b>Ваш профиль:</b>\n\nСтатус: Пациент\nИмя: {user.get()["username"]}'
+                                f'\nТелефон: ❌ Не указан\nВозраст: {user.get()["age"]}\nПол: 👩 Женский',
+                                message.chat.id, user, reply=keyboard)
         # Если есть история болезни
         if user.getHistory() is not None:
             # Получаем историю
