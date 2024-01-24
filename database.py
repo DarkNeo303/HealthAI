@@ -52,6 +52,18 @@ database.execute('''
     )
 ''')
 
+# Создание таблицы с
+database.execute('''
+    CREATE TABLE IF NOT EXISTS ads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        label VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        author INTEGER NOT NULL,
+        photo BLOB,
+        experies VARCHAR(255)
+    )
+''')
+
 # Создание таблицы пациентов
 database.execute('''
     CREATE TABLE IF NOT EXISTS patients (
@@ -1233,6 +1245,22 @@ def getRandomPatient() -> Union[Patient, type(None)]:
         return Patient(patient[0])
     # Возвращаем результат
     return None
+
+
+# Получение рекламного листа
+def getAllAds() -> Union[Ads, type(None)]:
+    # Рекламы
+    ads: Union[List[Ads.Ad], type(None)] = []
+    # Выполняем запрос
+    result: Union[list, type(None)] = database.execute(f'SELECT * FROM ads').fetchall()
+    # Если есть результат
+    if result is not None and result:
+        # Иттерация по результатам
+        for item in result:
+            # Получаем рекламу
+            ads.append(Ads(int(item[0])))
+    # Возвращаем результат
+    return ads
 
 
 # Получение пользователя

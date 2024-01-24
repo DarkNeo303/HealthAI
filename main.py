@@ -14,9 +14,10 @@ import threading
 from typing import Union, List
 from dotenv import load_dotenv
 from database import getAllUserList
+from database import Admin, Operations, Ads
 from deep_translator import GoogleTranslator
 from support import checkInt, Switch, ram, stringToBool
-from database import Patient, Doctor, getUser, History, Admin, Operations
+from database import Patient, Doctor, getUser, History
 
 # Инициализация
 ai.initAi()
@@ -1001,7 +1002,8 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
     bot.delete_message(call.message.chat.id, call.message.id)
     # Указываем значение по умолчанию
     defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo", "kickPatientDoctor",
-                                  "kickDoctorPatient", "kickDoctorDoctor", "healCabinet"]
+                                  "kickDoctorPatient", "kickDoctorDoctor", "healCabinet",
+                                  "clearAd", "premium", "myAds", "buyPrem"]
     # Пользователь
     user: Union[Patient, Doctor, type(None)] = None
     try:
@@ -1121,6 +1123,26 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                     else:
                         # Отправляем сообщение
                         sendMessage('❌ Невозможно завершить операцию - вы не врач!', message['user'])
+                elif case(defaultArgs[6]):
+                    pass
+                elif case(defaultArgs[7]):
+                    # Клавиатура
+                    keyboard = telebot.types.InlineKeyboardMarkup()
+                    keyboard.add(
+                        telebot.types.InlineKeyboardButton(f"✔ Купить за {os.getenv('PREMAMMOUNT')}",
+                                                           callback_data=f"buyPrem|{message['user'].get()['id']}"),
+                        telebot.types.InlineKeyboardButton("❌ Отказаться", callback_data="hide"),
+                    )
+                    # Отсылаем сообщение
+                    sendMessage(f'💎 <b>С HealthPremium Вы сможете:</b>\n\n'
+                                f'1. Игнорировать ежедневную рекламу'
+                                f'2. Поддержать развивающийся проект'
+                                f'3. Получить буст среди ожидающих приёма\n\n'
+                                f'💸 <b>Цена: {os.getenv("PREMAMMOUNT")}</b>', message['user'])
+                elif case(defaultArgs[8]):
+                    pass
+                elif case(defaultArgs[9]):
+                    pass
             # Возвращаем значение
             return None
         # Если пользователь - админ
@@ -1970,6 +1992,28 @@ def help(message):
                 getUser(message.from_user.id))
 
 
+# Холдер команды помощи
+@bot.message_handler(commands=['ads', 'ad'])
+def ads(message):
+    # Клавиатура
+    keyboard = telebot.types.InlineKeyboardMarkup()
+    keyboard.add(
+        telebot.types.InlineKeyboardButton("💸 Купить рекламу",
+                                           callback_data=f"buyAd|{message.from_user.id}"),
+        telebot.types.InlineKeyboardButton("❌ Убрать рекламу", callback_data=f"clearAd|{message.from_user.id}")
+    )
+    keyboard.add(
+        telebot.types.InlineKeyboardButton("💎 Оформить премиум", callback_data=f"premium|{message.from_user.id}")
+    )
+    keyboard.add(
+        telebot.types.InlineKeyboardButton("🤔 Мои объявления", callback_data=f"myAds|{message.from_user.id}")
+    )
+    # Отправляем сообщение
+    sendMessage(f'📊 <b>Личный кабинет рекламы</b>\n\n👇 Перед использованием ознакомьтесь с '
+                f'<a href="{os.getenv("HELP")}">правилами размещения рекламы</a>', getUser(message.from_user.id),
+                reply=keyboard)
+
+
 # Холдер команды справочной
 @bot.message_handler(commands=['search', 'inquiry'])
 def inquiry(message):
@@ -1984,8 +2028,10 @@ def inquiry(message):
             # Устанавливаем статус
             bot.send_chat_action(message.chat.id, 'typing')
             # Отправляем сообщение
-            sendMessage(f'👌 По вашему запросу найдено: {ai.getResponse(f"Составь ответ на вопрос: "
-                        f"{sepparator.join(message.text.split()[1:])}")}', getUser(message.from_user.id))
+            sendMessage(f'👌 По вашему запросу найдено: '
+                        f'{ai.getResponse(f"Составь ответ на вопрос: "
+                                          f"{sepparator.join(message.text.split()[1:])}")}',
+                        getUser(message.from_user.id))
         else:
             # Отправляем сообщение
             sendMessage(f'☝ Недостаточно аргументов', getUser(message.from_user.id))
