@@ -23,8 +23,7 @@ from database import Admin, Operations, Ads, getAllAds, photos
 # Инициализация
 ai.initAi()
 load_dotenv()
-bot = telebot.TeleBot(os.getenv("TOKEN"))
-lock = threading.Lock()
+bot: telebot.TeleBot = telebot.TeleBot(os.getenv("TOKEN"))
 
 '''
 ======================================
@@ -873,10 +872,11 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Вносим отступ
                 history += '\n'
             # Если есть время поступления и история болезни заведена
-            if patient.getHistory().assigned is not None and patient.getHistory() is not None:
-                # Добавляем время поступления
-                history += (f'Время поступления: {patient.getHistory().assigned.day}.'
-                            f'{patient.getHistory().assigned.month}.{patient.getHistory().assigned.year}')
+            if patient.getHistory() is not None:
+                if patient.getHistory().assigned is not None:
+                    # Добавляем время поступления
+                    history += (f'Время поступления: {patient.getHistory().assigned.day}.'
+                                f'{patient.getHistory().assigned.month}.{patient.getHistory().assigned.year}')
             # Отправляем сообщение
             sendMessage(history, doctor, reply=keyboard)
             # Ломаем функцию
@@ -999,21 +999,193 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             # Ломаем функцию
             break
         elif case(12):
+            # Отправляем сообщение
+            sendMessage('✏ Введите жалобы пациента:', doctor, reply=cancel)
+            # Регистрируем следующий шаг
+            bot.register_next_step_handler(message, healCabinet, doctor, patient, 18)
             # Ломаем функцию
             break
         elif case(13):
+            # Отправляем сообщение
+            sendMessage('✏ Введите препараты, дозировку и всё, что считаете нужным через запятую:',
+                        doctor, reply=cancel)
+            # Регистрируем следующий шаг
+            bot.register_next_step_handler(message, healCabinet, doctor, patient, 19)
             # Ломаем функцию
             break
         elif case(14):
+            # Отправляем сообщение
+            sendMessage('✏ Введите название диагноза:', doctor, reply=cancel)
+            # Регистрируем следующий шаг
+            bot.register_next_step_handler(message, healCabinet, doctor, patient, 23)
             # Ломаем функцию
             break
         elif case(15):
+            # Отправляем сообщение
+            sendMessage('✏ Введите прогнозы на пациента:', doctor, reply=cancel)
+            # Регистрируем следующий шаг
+            bot.register_next_step_handler(message, healCabinet, doctor, patient, 20)
             # Ломаем функцию
             break
         elif case(16):
+            # Отправляем сообщение
+            sendMessage('✏ Введите данные об анализах пациента:', doctor, reply=cancel)
+            # Регистрируем следующий шаг
+            bot.register_next_step_handler(message, healCabinet, doctor, patient, 21)
             # Ломаем функцию
             break
         elif case(17):
+            # Отправляем сообщение
+            sendMessage('✏ Заполните общую историю пациента:', doctor, reply=cancel)
+            # Регистрируем следующий шаг
+            bot.register_next_step_handler(message, healCabinet, doctor, patient, 22)
+            # Ломаем функцию
+            break
+        elif case(18):
+            # История
+            history: History = patient.getHistory()
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Заполнение отменено', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                # Запоминаем жалобы
+                history.complaints = message.text
+                # Обновляем историю
+                patient.update(Patient.Types.history, history)
+                # Отправляем сообщение
+                sendMessage('✔ Жалобы заполнены!', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            # Открываем кабинет
+            healCabinet(message, doctor, patient, 11)
+            # Ломаем функцию
+            break
+        elif case(19):
+            # История
+            history: History = patient.getHistory()
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Заполнение отменено', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                try:
+                    # Запоминаем информацию
+                    history.medicines = message.text.split(',')
+                    # Обновляем историю
+                    patient.update(Patient.Types.history, history)
+                    # Отправляем сообщение
+                    sendMessage('✔ Медикаменты заполнены!', doctor, reply=telebot.types.ReplyKeyboardRemove())
+                except Exception:
+                    # Отправляем сообщение
+                    sendMessage('❌ Заполнение отменено.\nНеверный формат заполнения!',
+                                doctor, reply=telebot.types.ReplyKeyboardRemove())
+            # Открываем кабинет
+            healCabinet(message, doctor, patient, 11)
+            # Ломаем функцию
+            break
+        elif case(20):
+            # История
+            history: History = patient.getHistory()
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Заполнение отменено', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                # Заполняем прогнозы
+                history.predict = message.text
+                # Обновляем историю
+                patient.update(Patient.Types.history, history)
+                # Отправляем сообщение
+                sendMessage('✔ Прогнозы заполнены!', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            # Открываем кабинет
+            healCabinet(message, doctor, patient, 11)
+            # Ломаем функцию
+            break
+        elif case(21):
+            # История
+            history: History = patient.getHistory()
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Заполнение отменено', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                # Запоминаем анализы
+                history.analyzes = message.text
+                # Обновляем историю
+                patient.update(Patient.Types.history, history)
+                # Отправляем сообщение
+                sendMessage('✔ Анализы заполнены!', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            # Открываем кабинет
+            healCabinet(message, doctor, patient, 11)
+            # Ломаем функцию
+            break
+        elif case(22):
+            # История
+            history: History = patient.getHistory()
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Заполнение отменено', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                # Вносим историю
+                history.description = message.text
+                # Обновляем историю
+                patient.update(Patient.Types.history, history)
+                # Отправляем сообщение
+                sendMessage('✔ Первичный опрос заполнен!', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            # Открываем кабинет
+            healCabinet(message, doctor, patient, 11)
+            # Ломаем функцию
+            break
+        elif case(23):
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Заполнение отменено', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                # Запоминаем название диагноза
+                ram[patient.get()['id']] = {
+                    'type': 'system',
+                    'operation': Operations.Diagnose,
+                    'title': message.text
+                }
+                # Отправляем сообщение
+                sendMessage('✏ Введите описание диагноза', doctor, reply=cancel)
+                # Регистрируем следующее событие
+                bot.register_next_step_handler(message, healCabinet, doctor, patient, 24)
+        elif case(24):
+            # История
+            history: History = patient.getHistory()
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Удаляем пользователя
+                if (patient.get()['id'] in ram and ram[patient.get()['id']]['type'] == 'system' and
+                        ram[patient.get()['id']]['operation'] == Operations.Diagnose):
+                    # Удаляем операцию
+                    ram.pop(patient.get()['id'])
+                # Отправляем сообщение
+                sendMessage('❌ Заполнение отменено', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                # Удаляем пользователя
+                if (patient.get()['id'] in ram and ram[patient.get()['id']]['type'] == 'system' and
+                        ram[patient.get()['id']]['operation'] == Operations.Diagnose):
+                    # Диагноз
+                    diagnosis: history.Diagnosis = history.Diagnosis()
+                    diagnosis.title = ram[patient.get()['id']]['title']
+                    diagnosis.description = message.text
+                    # Вносим диагноз
+                    history.diagnoses.append(diagnosis)
+                    # Обновляем историю
+                    patient.update(Patient.Types.history, history)
+                    # Удаляем операцию
+                    ram.pop(patient.get()['id'])
+                    # Отправляем сообщение
+                    sendMessage('✔ Диагноз внесён!', doctor, reply=telebot.types.ReplyKeyboardRemove())
+                else:
+                    # Отправляем сообщение
+                    sendMessage('❌ Заполнение отменено.\n\nПользователь не найден в оперативной памяти!',
+                                doctor, reply=telebot.types.ReplyKeyboardRemove())
+            # Открываем кабинет
+            healCabinet(message, doctor, patient, 11)
             # Ломаем функцию
             break
         elif case():
@@ -2791,44 +2963,38 @@ def checkPremiumUsers():
 def showAds():
     # Вечный цикл
     while True:
-        try:
-            # Инициализация
-            lock.acquire(True)
+        # Если нужно показывать объявления
+        if stringToBool(os.getenv('SHOWADS')):
             # Получаем все рекламные объявления
-            adversement: List[Ads.Ad] = getAllAds()
-            # Если нужно показывать объявления
-            if stringToBool(os.getenv('SHOWADS')):
-                # Если список не пустой
-                if adversement:
-                    # Выбираем рандомную рекламу для показа
-                    ad: Ads.Ad = choice(adversement)
-                    # Если есть пользователи
-                    if getAllUserList():
-                        # Иттерация по пользователям
-                        for user in getAllUserList():
-                            # Если нету премиума
-                            if not user.isPremium():
-                                # Если есть фото
-                                if ad.photo is not None:
-                                    # Публикуем сообщение
-                                    sendMessage(f'💎 <b>Рекламное объявление: </b>{ad.label}\n\n{ad.description}\n'
-                                                f'\n<b>{ad.author.get()["username"]}</b>', user, photo=ad.photo)
-                                else:
-                                    # Публикуем сообщение
-                                    sendMessage(f'💎 <b>Рекламное объявление: </b>{ad.label}\n\n{ad.description}\n'
-                                                f'\n<b>{ad.author.get()["username"]}</b>', user)
-                else:
-                    # Если есть пользователи
-                    if getAllUserList():
-                        # Иттерация по пользователям
-                        for user in getAllUserList():
-                            # Если нету премиума
-                            if not user.isPremium():
-                                # Отсылаем уведомление
-                                premiumAdShow(user)
-        finally:
-            # Инициализация
-            lock.release()
+            adversement: List[Ads.Ad] = getAllAds(True)
+            # Если список не пустой
+            if adversement:
+                # Выбираем рандомную рекламу для показа
+                ad: Ads.Ad = choice(adversement)
+                # Если есть пользователи
+                if getAllUserList(True):
+                    # Иттерация по пользователям
+                    for user in getAllUserList(True):
+                        # Если нету премиума
+                        if not user.isPremium():
+                            # Если есть фото
+                            if ad.photo is not None:
+                                # Публикуем сообщение
+                                sendMessage(f'💎 <b>Рекламное объявление: </b>{ad.label}\n\n{ad.description}\n'
+                                            f'\n<b>{ad.author.get()["username"]}</b>', user, photo=ad.photo)
+                            else:
+                                # Публикуем сообщение
+                                sendMessage(f'💎 <b>Рекламное объявление: </b>{ad.label}\n\n{ad.description}\n'
+                                            f'\n<b>{ad.author.get()["username"]}</b>', user)
+            else:
+                # Если есть пользователи
+                if getAllUserList(True):
+                    # Иттерация по пользователям
+                    for user in getAllUserList(True):
+                        # Если нету премиума
+                        if not user.isPremium():
+                            # Отсылаем уведомление
+                            premiumAdShow(user)
         # Задержка
         time.sleep(int(os.getenv('ADTIMER')))
 

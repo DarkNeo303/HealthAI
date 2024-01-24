@@ -96,7 +96,7 @@ if os.listdir(os.getenv('IMAGES')):
     # Инициализация фотографий
     for file in os.listdir(os.getenv('IMAGES')):
         # Открываем фотографию
-        with open(os.getenv('IMAGES')+file, 'rb') as ph:
+        with open(os.getenv('IMAGES') + file, 'rb') as ph:
             # Вносим фото
             photos[file.split('.')[0]] = ph.read()
 
@@ -107,6 +107,7 @@ class Operations(Enum):
     Contact = 1
     AnonContactFind = 2
     ChangeMe = 3
+    Diagnose = 4
 
 
 # Тип данных таблицы
@@ -153,9 +154,11 @@ class Doctor:
         qualification = 6
 
     # Инициализация
-    def __init__(self, id: Union[int, str]):
+    def __init__(self, id: Union[int, str], db: sqlite3.Cursor = database):
         # Запрос
         result = None
+        # Курсор
+        self.__db: sqlite3.Cursor = db
         # Если получено число
         if isinstance(id, int):
             # Переменные
@@ -170,7 +173,7 @@ class Doctor:
             self.__patients: List[Patient] = []
             self.__exsist: bool = False
             # Попытка найти пользователя
-            result = database.execute(f'SELECT * FROM doctors WHERE id={id}').fetchone()
+            result = db.execute(f'SELECT * FROM doctors WHERE id={id}').fetchone()
         # Если получена строка
         elif isinstance(id, str):
             # Переменные
@@ -185,7 +188,7 @@ class Doctor:
             self.__patients: List[Patient] = []
             self.__exsist: bool = False
             # Попытка найти пользователя
-            result = database.execute(f'SELECT * FROM doctors WHERE username={id}').fetchone()
+            result = db.execute(f'SELECT * FROM doctors WHERE username={id}').fetchone()
         # Проверка результата
         if result is not None:
             # Устанавливаем переменные
@@ -227,15 +230,15 @@ class Doctor:
     # Проверка премиума
     def isPremium(self) -> bool:
         # Возвращаем результат
-        return (database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone() is not None and
-                database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone())
+        return (self.__db.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone() is not None and
+                self.__db.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone())
 
     # Добавление премиума
     def premiumAdd(self, expires: datetime.date = datetime.date.today()) -> sqlite3.Cursor:
         try:
             # Результат
-            result: sqlite3.Cursor = database.execute('INSERT INTO premium (id, expires) VALUES (?, ?)',
-                                                      (self.__id, expires.strftime("%d%m%Y")))
+            result: sqlite3.Cursor = self.__db.execute('INSERT INTO premium (id, expires) VALUES (?, ?)',
+                                                       (self.__id, expires.strftime("%d%m%Y")))
             connection.commit()
             return result
         except Exception:
@@ -245,13 +248,13 @@ class Doctor:
     # Проверка премиума
     def checkPremium(self) -> bool:
         # Получаем результат
-        result: Union[tuple, type(None)] = database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone()
+        result: Union[tuple, type(None)] = self.__db.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone()
         # Если есть результат
         if result is not None and result:
             # Проверяем дату
             if datetime.datetime.strptime(result[1], "%d%m%Y").date() == datetime.date.today():
                 # Удаляем премиум
-                database.execute('DELETE FROM premium WHERE id=?', (self.__id,))
+                self.__db.execute('DELETE FROM premium WHERE id=?', (self.__id,))
                 # Возвращаем результат
                 return False
         # Возвращаем результат
@@ -260,7 +263,7 @@ class Doctor:
     # Проверка существования
     def isExsist(self) -> bool:
         # Попытка найти пользователя
-        self.__exsist = database.execute(f'SELECT * FROM doctors WHERE id={self.__id}').fetchone() is not None
+        self.__exsist = self.__db.execute(f'SELECT * FROM doctors WHERE id={self.__id}').fetchone() is not None
         # Возвращаем значение
         return self.__exsist
 
@@ -272,9 +275,9 @@ class Doctor:
         # Если получено число
         if isinstance(self.__id, int):
             # Обращение к БД
-            result1 = database.execute(f'INSERT INTO doctors (id, username, lang, qualification, document) '
-                                       f'VALUES (?, ?, ?, ?, ?)', (self.__id, username, lang, qualification,
-                                                                   document))
+            result1 = self.__db.execute(f'INSERT INTO doctors (id, username, lang, qualification, document) '
+                                        f'VALUES (?, ?, ?, ?, ?)', (self.__id, username, lang, qualification,
+                                                                    document))
             connection.commit()
             # Обновляем телефон
             result2 = self.update(self.Types.phone, phone)
@@ -287,7 +290,7 @@ class Doctor:
     # Удаление записи
     def remove(self) -> sqlite3.Cursor:
         # Удаляем запись о враче
-        result = database.execute(f'DELETE FROM doctors WHERE id={self.__id}')
+        result = self.__db.execute(f'DELETE FROM doctors WHERE id={self.__id}')
         connection.commit()
         # Возвращаем результат
         return result
@@ -301,7 +304,7 @@ class Doctor:
                 # Обновляем поле
                 self.__phone = value
                 # Обновляем БД
-                result = database.execute(f'UPDATE doctors SET phone={value} WHERE id={self.__id}')
+                result = self.__db.execute(f'UPDATE doctors SET phone={value} WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:
@@ -313,7 +316,7 @@ class Doctor:
                 # Обновляем поле
                 self.__lang = value
                 # Обновляем БД
-                result = database.execute(f'UPDATE doctors SET lang="{value}" WHERE id={self.__id}')
+                result = self.__db.execute(f'UPDATE doctors SET lang="{value}" WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:
@@ -325,7 +328,7 @@ class Doctor:
                 # Обновляем поле
                 self.__qualification = value
                 # Обновляем БД
-                result = database.execute(f'UPDATE doctors SET qualification="{value}" WHERE id={self.__id}')
+                result = self.__db.execute(f'UPDATE doctors SET qualification="{value}" WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:
@@ -344,7 +347,7 @@ class Doctor:
                     # Обновляем поле
                     self.__document = value
                     # Обновляем БД
-                    result = database.execute(f'UPDATE doctors SET document={value} WHERE id={self.__id}')
+                    result = self.__db.execute(f'UPDATE doctors SET document={value} WHERE id={self.__id}')
                     connection.commit()
                     return result
             else:
@@ -377,8 +380,8 @@ class Doctor:
                     # Вносим пациента
                     patients.append(patient.get()['id'])
                 # Обновляем БД
-                result = database.execute(f'UPDATE doctors SET patients="{json.dumps(patients)}" '
-                                          f'WHERE id={self.__id}')
+                result = self.__db.execute(f'UPDATE doctors SET patients="{json.dumps(patients)}" '
+                                           f'WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:
@@ -411,8 +414,8 @@ class Doctor:
                     # Вносим ID в список
                     subordinates.append(doctor.get()['id'])
                 # Обновляем БД
-                result = database.execute(f'UPDATE doctors SET subordinates="{json.dumps(subordinates)}" '
-                                          f'WHERE id={self.__id}')
+                result = self.__db.execute(f'UPDATE doctors SET subordinates="{json.dumps(subordinates)}" '
+                                           f'WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:
@@ -460,12 +463,12 @@ class Doctor:
         if isinstance(other, int):
             try:
                 # Обновляем БД
-                count: int = int(database.execute(f'SELECT * FROM doctors WHERE id={self.__id}').fetchone()[4])
-                database.execute(f'UPDATE doctors SET discharged={count + other} WHERE id={self.__id}')
+                count: int = int(self.__db.execute(f'SELECT * FROM doctors WHERE id={self.__id}').fetchone()[4])
+                self.__db.execute(f'UPDATE doctors SET discharged={count + other} WHERE id={self.__id}')
                 connection.commit()
             except TypeError:
                 # Обновляем БД
-                database.execute(f'UPDATE doctors SET discharged=1 WHERE id={self.__id}')
+                self.__db.execute(f'UPDATE doctors SET discharged=1 WHERE id={self.__id}')
                 connection.commit()
         else:
             # Выбрасываем ошибку
@@ -477,8 +480,8 @@ class Doctor:
         if isinstance(other, int):
             try:
                 # Обновляем БД
-                count: int = int(database.execute(f'SELECT * FROM doctors WHERE id={self.__id}').fetchone()[4])
-                database.execute(f'UPDATE doctors SET discharged={count - other} WHERE id={self.__id}')
+                count: int = int(self.__db.execute(f'SELECT * FROM doctors WHERE id={self.__id}').fetchone()[4])
+                self.__db.execute(f'UPDATE doctors SET discharged={count - other} WHERE id={self.__id}')
                 connection.commit()
             except TypeError:
                 # Выбрасываем ошибку
@@ -732,9 +735,10 @@ class Patient:
         return result
 
     # Инициализация
-    def __init__(self, id: Union[int, str]):
+    def __init__(self, id: Union[int, str], db: sqlite3.Cursor = database):
         # Запрос
         result = None
+        self.__db: sqlite3.Cursor = db
         # Если получено число
         if isinstance(id, int):
             # Переменные
@@ -748,7 +752,7 @@ class Patient:
             self.__tables: List[Table] = []
             self.__exsist: bool = False
             # Попытка найти пользователя
-            result = database.execute(f'SELECT * FROM patients WHERE id={id}').fetchone()
+            result = self.__db.execute(f'SELECT * FROM patients WHERE id={id}').fetchone()
         # Если получена строка
         elif isinstance(id, str):
             # Переменные
@@ -762,7 +766,7 @@ class Patient:
             self.__tables: List[Table] = []
             self.__exsist: bool = False
             # Попытка найти пользователя
-            result = database.execute(f'SELECT * FROM patients WHERE username={id}').fetchone()
+            result = self.__db.execute(f'SELECT * FROM patients WHERE username={id}').fetchone()
         # Проверка результата
         if result is not None:
             # Устанавливаем переменные
@@ -808,9 +812,9 @@ class Patient:
                     # Запись к доктору
                     doctor.update(Doctor.Types.patients, doctor.getPatients().append(self))
             # Обращение к БД
-            result = database.execute(f'INSERT INTO patients (id, sex, lang, age, username, phone) '
-                                      f'VALUES (?, ?, ?, ?, ?, ?)',
-                                      (self.__id, sex, lang, age, username, phone))
+            result = self.__db.execute(f'INSERT INTO patients (id, sex, lang, age, username, phone) '
+                                       f'VALUES (?, ?, ?, ?, ?, ?)',
+                                       (self.__id, sex, lang, age, username, phone))
             connection.commit()
             # Возвращаем результат
             return result
@@ -821,7 +825,7 @@ class Patient:
     # Проверка существования
     def isExsist(self) -> bool:
         # Попытка найти пользователя
-        self.__exsist = database.execute(f'SELECT * FROM patients WHERE id={self.__id}').fetchone() is not None
+        self.__exsist = self.__db.execute(f'SELECT * FROM patients WHERE id={self.__id}').fetchone() is not None
         # Возвращаем значение
         return self.__exsist
 
@@ -868,7 +872,7 @@ class Patient:
                 self.__tables.remove(table)
                 break
         # Обновляем БД
-        result = database.execute(f'UPDATE patients SET tables={self.__tables}')
+        result = self.__db.execute(f'UPDATE patients SET tables={self.__tables}')
         connection.commit()
         # Возвращаем результат
         return result
@@ -884,11 +888,11 @@ class Patient:
                 # Выписка
                 doctor + 1
                 # Удаляем запись о пациенте
-                result.append(database.execute(f'DELETE FROM patients WHERE id={self.__id}'))
+                result.append(self.__db.execute(f'DELETE FROM patients WHERE id={self.__id}'))
                 connection.commit()
         else:
             # Удаляем запись о пациенте
-            result.append(database.execute(f'DELETE FROM patients WHERE id={self.__id}'))
+            result.append(self.__db.execute(f'DELETE FROM patients WHERE id={self.__id}'))
             connection.commit()
         # Возвращаем результат
         return result
@@ -902,7 +906,7 @@ class Patient:
                 # Обновление поля
                 self.__phone = value
                 # Обновляем БД
-                result = database.execute(f'UPDATE patients SET phone={value} WHERE id={self.__id}')
+                result = self.__db.execute(f'UPDATE patients SET phone={value} WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:
@@ -914,7 +918,7 @@ class Patient:
                 # Обновление поля
                 self.__lang = value
                 # Обновляем БД
-                result = database.execute(f'UPDATE patients SET lang="{value}" WHERE id={self.__id}')
+                result = self.__db.execute(f'UPDATE patients SET lang="{value}" WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:
@@ -926,7 +930,7 @@ class Patient:
                 # Обновление поля
                 self.__age = value
                 # Обновляем БД
-                result = database.execute(f'UPDATE patients SET age="{value}" WHERE id={self.__id}')
+                result = self.__db.execute(f'UPDATE patients SET age="{value}" WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:
@@ -936,8 +940,8 @@ class Patient:
             # Проверка параметра
             if isinstance(value, History):
                 # Обновляем БД
-                result = database.execute(f'UPDATE patients SET history='
-                                          f'"{self.__parseHistory(value)}" WHERE id={self.__id}')
+                result = self.__db.execute(f'UPDATE patients SET history='
+                                           f'"{self.__parseHistory(value)}" WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:
@@ -951,8 +955,8 @@ class Patient:
                 # Получаем максимальный ID
                 id: int = len(database.execute(f'SELECT tables FROM patients WHERE id={self.__id}').fetchall()) + 1
                 # Обновляем БД
-                result = database.execute(f'UPDATE patients SET '
-                                          f'tables="{self.__parseTable(id, value)}" WHERE id={self.__id}')
+                result = self.__db.execute(f'UPDATE patients SET '
+                                           f'tables="{self.__parseTable(id, value)}" WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:
@@ -1184,8 +1188,8 @@ class Ads:
     def createAd(self, label: str, description: str, photo: Union[bytes, type(None)] = None,
                  author: Union[Doctor, Patient, type(None)] = None,
                  experies: Union[datetime.date, type(None)] = datetime.date.today() + datetime.timedelta(
-                                                                  days=int(os.getenv('ADEXP'))
-                                                              )) -> sqlite3.Cursor:
+                     days=int(os.getenv('ADEXP'))
+                 )) -> sqlite3.Cursor:
         # Тип рекламы
         adType = type(self.Ad())
         # Если автор есть
@@ -1298,26 +1302,50 @@ def getRandomDoctor() -> Union[Doctor, type(None)]:
 
 
 # Получение списка пользователей
-def getAllUserList() -> List[Union[Patient, Doctor]]:
-    # Результат
-    result: List[Union[Patient, Doctor]] = []
-    # Получаем списки
-    doctors: Union[tuple, type(None)] = database.execute('SELECT * FROM doctors').fetchall()
-    patients: Union[tuple, type(None)] = database.execute('SELECT * FROM patients').fetchall()
-    # Проверка типов
-    if doctors is not None:
-        # Иттерация по списку
-        for doctor in doctors:
-            # Добавляем результат
-            result.append(Doctor(doctor[0]))
-    # Проверка типов
-    if patients is not None:
-        # Иттерация по списку
-        for patient in patients:
-            # Добавляем результат
-            result.append(Patient(patient[0]))
-    # Возвращаем результат
-    return result
+def getAllUserList(inThread: bool = False) -> List[Union[Patient, Doctor]]:
+    # Если в потоке
+    if inThread:
+        # Открываем соединение
+        db = connection.cursor()
+        # Результат
+        result: List[Union[Patient, Doctor]] = []
+        # Получаем списки
+        doctors: Union[tuple, type(None)] = db.execute('SELECT * FROM doctors').fetchall()
+        patients: Union[tuple, type(None)] = db.execute('SELECT * FROM patients').fetchall()
+        # Проверка типов
+        if doctors is not None:
+            # Иттерация по списку
+            for doctor in doctors:
+                # Добавляем результат
+                result.append(Doctor(doctor[0], db))
+        # Проверка типов
+        if patients is not None:
+            # Иттерация по списку
+            for patient in patients:
+                # Добавляем результат
+                result.append(Patient(patient[0], db))
+        # Возвращаем результат
+        return result
+    else:
+        # Результат
+        result: List[Union[Patient, Doctor]] = []
+        # Получаем списки
+        doctors: Union[tuple, type(None)] = database.execute('SELECT * FROM doctors').fetchall()
+        patients: Union[tuple, type(None)] = database.execute('SELECT * FROM patients').fetchall()
+        # Проверка типов
+        if doctors is not None:
+            # Иттерация по списку
+            for doctor in doctors:
+                # Добавляем результат
+                result.append(Doctor(doctor[0]))
+        # Проверка типов
+        if patients is not None:
+            # Иттерация по списку
+            for patient in patients:
+                # Добавляем результат
+                result.append(Patient(patient[0]))
+        # Возвращаем результат
+        return result
 
 
 # Получение случайного пациента
@@ -1333,17 +1361,30 @@ def getRandomPatient() -> Union[Patient, type(None)]:
 
 
 # Получение рекламного листа
-def getAllAds() -> Union[List[Ads.Ad], type(None)]:
+def getAllAds(inThread: bool = False) -> Union[List[Ads.Ad], type(None)]:
     # Рекламы
     ads: Union[List[Ads.Ad], type(None)] = []
-    # Выполняем запрос
-    result: Union[list, type(None)] = database.execute(f'SELECT * FROM ads').fetchall()
-    # Если есть результат
-    if result is not None and result:
-        # Иттерация по результатам
-        for item in result:
-            # Получаем рекламу
-            ads.append(Ads(int(item[0])))
+    # Если не в потоке
+    if not inThread:
+        # Выполняем запрос
+        result: Union[list, type(None)] = database.execute(f'SELECT * FROM ads').fetchall()
+        # Если есть результат
+        if result is not None and result:
+            # Иттерация по результатам
+            for item in result:
+                # Получаем рекламу
+                ads.append(Ads(int(item[0])))
+    else:
+        # Создаём курсор
+        db = connection.cursor()
+        # Выполняем запрос
+        result: Union[list, type(None)] = db.execute(f'SELECT * FROM ads').fetchall()
+        # Если есть результат
+        if result is not None and result:
+            # Иттерация по результатам
+            for item in result:
+                # Получаем рекламу
+                ads.append(Ads(int(item[0])))
     # Возвращаем результат
     return ads
 
