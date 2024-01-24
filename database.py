@@ -1333,7 +1333,7 @@ def getRandomPatient() -> Union[Patient, type(None)]:
 
 
 # Получение рекламного листа
-def getAllAds() -> Union[Ads, type(None)]:
+def getAllAds() -> Union[List[Ads.Ad], type(None)]:
     # Рекламы
     ads: Union[List[Ads.Ad], type(None)] = []
     # Выполняем запрос

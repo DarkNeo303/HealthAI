@@ -11,6 +11,7 @@ import os
 import time
 import telebot
 import threading
+from random import choice
 from typing import Union, List
 from dotenv import load_dotenv
 from database import getAllUserList
@@ -23,6 +24,7 @@ from database import Admin, Operations, Ads, getAllAds, photos
 ai.initAi()
 load_dotenv()
 bot = telebot.TeleBot(os.getenv("TOKEN"))
+lock = threading.Lock()
 
 '''
 ======================================
@@ -38,6 +40,30 @@ cancel.add(telebot.types.KeyboardButton(text="❌ Отменить"))
 apply = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
 apply.add(telebot.types.KeyboardButton(text="✔ Подтвердить"),
           telebot.types.KeyboardButton(text="❌ Отменить"))
+
+'''
+======================================
+       ЗАГОТОВЛЕННЫЕ ОБЪЯВЛЕНИЯ   
+======================================
+'''
+
+
+def premiumAdShow(user: Union[Doctor, Patient]) -> telebot.types.Message:
+    # Клавиатура
+    keyboard = telebot.types.InlineKeyboardMarkup()
+    keyboard.add(
+        telebot.types.InlineKeyboardButton(f"✔ Купить за {os.getenv('PREMAMMOUNT')}₽",
+                                           callback_data=f"buyPrem|{user.get()['id']}"),
+        telebot.types.InlineKeyboardButton("❌ Отказаться", callback_data="hide"),
+    )
+    # Отсылаем сообщение
+    return sendMessage(f'💎 <b>С HealthPremium Вы сможете:</b>\n\n'
+                       f'1. Игнорировать ежедневную рекламу\n'
+                       f'2. Поддержать развивающийся проект\n'
+                       f'3. Получить буст среди ожидающих приёма\n\n'
+                       f'💸 <b>Цена: {os.getenv("PREMAMMOUNT")}₽/мес.</b>', user, photo=photos['Premium'],
+                       reply=keyboard)
+
 
 '''
 ======================================
@@ -1129,20 +1155,8 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                     # Ломаем цикл
                     break
                 elif case(defaultArgs[7]):
-                    # Клавиатура
-                    keyboard = telebot.types.InlineKeyboardMarkup()
-                    keyboard.add(
-                        telebot.types.InlineKeyboardButton(f"✔ Купить за {os.getenv('PREMAMMOUNT')}₽",
-                                                           callback_data=f"buyPrem|{message['user'].get()['id']}"),
-                        telebot.types.InlineKeyboardButton("❌ Отказаться", callback_data="hide"),
-                    )
-                    # Отсылаем сообщение
-                    sendMessage(f'💎 <b>С HealthPremium Вы сможете:</b>\n\n'
-                                f'1. Игнорировать ежедневную рекламу\n'
-                                f'2. Поддержать развивающийся проект\n'
-                                f'3. Получить буст среди ожидающих приёма\n\n'
-                                f'💸 <b>Цена: {os.getenv("PREMAMMOUNT")}₽/мес.</b>', message['user'],
-                                photo=photos['Premium'], reply=keyboard)
+                    # Реклама премиума
+                    premiumAdShow(message['user'])
                     # Ломаем цикл
                     break
                 elif case(defaultArgs[8]):
@@ -2773,6 +2787,52 @@ def checkPremiumUsers():
         time.sleep(int(os.getenv('TIMER')))
 
 
+# Показ рекламы
+def showAds():
+    # Вечный цикл
+    while True:
+        try:
+            # Инициализация
+            lock.acquire(True)
+            # Получаем все рекламные объявления
+            adversement: List[Ads.Ad] = getAllAds()
+            # Если нужно показывать объявления
+            if stringToBool(os.getenv('SHOWADS')):
+                # Если список не пустой
+                if adversement:
+                    # Выбираем рандомную рекламу для показа
+                    ad: Ads.Ad = choice(adversement)
+                    # Если есть пользователи
+                    if getAllUserList():
+                        # Иттерация по пользователям
+                        for user in getAllUserList():
+                            # Если нету премиума
+                            if not user.isPremium():
+                                # Если есть фото
+                                if ad.photo is not None:
+                                    # Публикуем сообщение
+                                    sendMessage(f'💎 <b>Рекламное объявление: </b>{ad.label}\n\n{ad.description}\n'
+                                                f'\n<b>{ad.author.get()["username"]}</b>', user, photo=ad.photo)
+                                else:
+                                    # Публикуем сообщение
+                                    sendMessage(f'💎 <b>Рекламное объявление: </b>{ad.label}\n\n{ad.description}\n'
+                                                f'\n<b>{ad.author.get()["username"]}</b>', user)
+                else:
+                    # Если есть пользователи
+                    if getAllUserList():
+                        # Иттерация по пользователям
+                        for user in getAllUserList():
+                            # Если нету премиума
+                            if not user.isPremium():
+                                # Отсылаем уведомление
+                                premiumAdShow(user)
+        finally:
+            # Инициализация
+            lock.release()
+        # Задержка
+        time.sleep(int(os.getenv('ADTIMER')))
+
+
 # Очистка ОЗУ
 def clearRAM(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequired: int = 5):
     # Вечный цикл
@@ -2804,9 +2864,10 @@ def clearRAM(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequired: in
         time.sleep(int(os.getenv('TIMER')))
 
 
-# Запуск постоянной очистки и проверки премиума
+# Запуск фоновых процессов
 threading.Thread(target=clearRAM, args=(ram,)).start()
 threading.Thread(target=checkPremiumUsers).start()
+threading.Thread(target=showAds).start()
 
 # Цикл
 bot.infinity_polling()
