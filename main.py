@@ -858,6 +858,26 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             # Ломаем функцию
             break
         elif case(2):
+            # Клавиатура
+            keyboard = telebot.types.InlineKeyboardMarkup()
+            keyboard.add(
+                telebot.types.InlineKeyboardButton("✏ Создать опросник",
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|8"),
+                telebot.types.InlineKeyboardButton("❌ Удалить опросник",
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|9"),
+            )
+            keyboard.add(
+                telebot.types.InlineKeyboardButton("📊 Результаты опросов",
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|10")
+            )
+            keyboard.add(
+                telebot.types.InlineKeyboardButton("❌ Свернуть", callback_data=f"hide")
+            )
+            # Отправляем сообщение
+            sendMessage('📊 <b>Меню создания опросников:</b>', reply=keyboard)
             # Ломаем функцию
             break
         elif case(3):
