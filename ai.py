@@ -35,7 +35,7 @@ with open('hack.json', 'r', encoding=os.getenv('CODEC')) as hackFile:
 # Метод управления запросом
 def getResponse(message: str,
                 model: str = str(os.getenv("GPT")),
-                provider: g4f.Provider = g4f.Provider.FakeGpt, useHack: bool = True) -> str:
+                provider: g4f.Provider = g4f.Provider.Aura, useHack: bool = True) -> str:
     # Если режим отладки
     if stringToBool(os.getenv("DEBUG")):
         # Доступные провайдеры
