@@ -1051,14 +1051,10 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                                 # Если нету аргументов
                                 if len(message['params']) < 3:
                                     # Передаём параметры в функцию
-                                    healCabinet(sendMessage('👌 Открываем медицинскую карту...',
-                                                            message['user']), message['user'],
-                                                getUser(int(message['params'][1])))
+                                    healCabinet(call.message, message['user'], getUser(int(message['params'][1])))
                                 else:
                                     # Передаём параметры в функцию
-                                    healCabinet(sendMessage('👌 Открываем медицинскую карту...',
-                                                            message['user']),
-                                                message['user'], getUser(int(message['params'][1])),
+                                    healCabinet(call.message, message['user'], getUser(int(message['params'][1])),
                                                 int(message['params'][2]))
                                 # Ломаем иттерацию
                                 return None
