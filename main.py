@@ -1052,7 +1052,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Запоминаем жалобы
                 history.complaints = message.text
                 # Обновляем историю
-                patient.update(Patient.Types.history, history)
+                patient.updateHistory(history)
                 # Отправляем сообщение
                 sendMessage('✔ Жалобы заполнены!', doctor, reply=telebot.types.ReplyKeyboardRemove())
             # Открываем кабинет
@@ -1071,7 +1071,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                     # Запоминаем информацию
                     history.medicines = message.text.split(',')
                     # Обновляем историю
-                    patient.update(Patient.Types.history, history)
+                    patient.updateHistory(history)
                     # Отправляем сообщение
                     sendMessage('✔ Медикаменты заполнены!', doctor, reply=telebot.types.ReplyKeyboardRemove())
                 except Exception:
@@ -1093,7 +1093,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Заполняем прогнозы
                 history.predict = message.text
                 # Обновляем историю
-                patient.update(Patient.Types.history, history)
+                patient.updateHistory(history)
                 # Отправляем сообщение
                 sendMessage('✔ Прогнозы заполнены!', doctor, reply=telebot.types.ReplyKeyboardRemove())
             # Открываем кабинет
@@ -1111,7 +1111,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Запоминаем анализы
                 history.analyzes = message.text
                 # Обновляем историю
-                patient.update(Patient.Types.history, history)
+                patient.updateHistory(history)
                 # Отправляем сообщение
                 sendMessage('✔ Анализы заполнены!', doctor, reply=telebot.types.ReplyKeyboardRemove())
             # Открываем кабинет
@@ -1129,7 +1129,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Вносим историю
                 history.description = message.text
                 # Обновляем историю
-                patient.update(Patient.Types.history, history)
+                patient.updateHistory(history)
                 # Отправляем сообщение
                 sendMessage('✔ Первичный опрос заполнен!', doctor, reply=telebot.types.ReplyKeyboardRemove())
             # Открываем кабинет
@@ -1175,7 +1175,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                     # Вносим диагноз
                     history.diagnoses.append(diagnosis)
                     # Обновляем историю
-                    patient.update(Patient.Types.history, history)
+                    patient.updateHistory(history)
                     # Удаляем операцию
                     ram.pop(patient.get()['id'])
                     # Отправляем сообщение
