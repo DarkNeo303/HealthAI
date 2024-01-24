@@ -14,8 +14,8 @@ import threading
 from typing import Union, List
 from dotenv import load_dotenv
 from database import getAllUserList
-from database import Admin, Operations, Ads
 from deep_translator import GoogleTranslator
+from database import Admin, Operations, Ads, getAllAds
 from support import checkInt, Switch, ram, stringToBool
 from database import Patient, Doctor, getUser, History
 

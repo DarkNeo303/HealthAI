@@ -40,6 +40,14 @@ database.execute('''
     )
 ''')
 
+# Создание таблицы премиума
+database.execute('''
+    CREATE TABLE IF NOT EXISTS premium (
+        id INTEGER PRIMARY KEY NOT NULL,
+        experies VARCHAR(255)
+    )
+''')
+
 # Создание таблицы с рекламой
 database.execute('''
     CREATE TABLE IF NOT EXISTS ads (
@@ -204,6 +212,12 @@ class Doctor:
                     self.__patients.append(Patient(id))
             except Exception:
                 pass
+
+    # Проверка премиума
+    def isPremium(self) -> bool:
+        # Возвращаем результат
+        return (database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone() is not None and
+                database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone())
 
     # Проверка существования
     def isExsist(self) -> bool:
@@ -487,6 +501,12 @@ class Patient:
         tables = 2,
         age = 3,
         lang = 4
+
+    # Проверка премиума
+    def isPremium(self) -> bool:
+        # Возвращаем результат
+        return (database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone() is not None and
+                database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone())
 
     # Парсинг истории болезни
     def __parseHistory(self, data: Union[History, dict]) -> Union[History, dict]:
