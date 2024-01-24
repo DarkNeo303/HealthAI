@@ -43,7 +43,7 @@ database.execute('''
 # Создание таблицы премиума
 database.execute('''
     CREATE TABLE IF NOT EXISTS premium (
-        id INTEGER PRIMARY KEY NOT NULL,
+        id INTEGER PRIMARY KEY NOT NULL UNIQUIE,
         experies VARCHAR(255)
     )
 ''')
@@ -218,6 +218,33 @@ class Doctor:
         # Возвращаем результат
         return (database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone() is not None and
                 database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone())
+
+    # Добавление премиума
+    def premiumAdd(self, expires: datetime.date = datetime.date.today()) -> sqlite3.Cursor:
+        try:
+            # Результат
+            result: sqlite3.Cursor = database.execute('INSERT INTO premium (id, expires) VALUES (?, ?)',
+                                                      (self.__id, expires.strftime("%d%m%Y")))
+            connection.commit()
+            return result
+        except Exception:
+            # Выбрасываем ошибку
+            raise KeyError(f"Can't add premium. Premium is already added to id {self.__id}!")
+
+    # Проверка премиума
+    def checkPremium(self) -> bool:
+        # Получаем результат
+        result: Union[tuple, type(None)] = database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone()
+        # Если есть результат
+        if result is not None and result:
+            # Проверяем дату
+            if datetime.datetime.strptime(result[1], "%d%m%Y").date() == datetime.date.today():
+                # Удаляем премиум
+                database.execute('DELETE FROM premium WHERE id=?', (self.__id,))
+                # Возвращаем результат
+                return False
+        # Возвращаем результат
+        return True
 
     # Проверка существования
     def isExsist(self) -> bool:
@@ -507,6 +534,33 @@ class Patient:
         # Возвращаем результат
         return (database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone() is not None and
                 database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone())
+
+    # Добавление премиума
+    def premiumAdd(self, expires: datetime.date = datetime.date.today()) -> sqlite3.Cursor:
+        try:
+            # Результат
+            result: sqlite3.Cursor = database.execute('INSERT INTO premium (id, expires) VALUES (?, ?)',
+                                                      (self.__id, expires.strftime("%d%m%Y")))
+            connection.commit()
+            return result
+        except Exception:
+            # Выбрасываем ошибку
+            raise KeyError(f"Can't add premium. Premium is already added to id {self.__id}!")
+
+    # Проверка премиума
+    def checkPremium(self) -> bool:
+        # Получаем результат
+        result: Union[tuple, type(None)] = database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone()
+        # Если есть результат
+        if result is not None and result:
+            # Проверяем дату
+            if datetime.datetime.strptime(result[1], "%d%m%Y").date() == datetime.date.today():
+                # Удаляем премиум
+                database.execute('DELETE FROM premium WHERE id=?', (self.__id,))
+                # Возвращаем результат
+                return False
+        # Возвращаем результат
+        return True
 
     # Парсинг истории болезни
     def __parseHistory(self, data: Union[History, dict]) -> Union[History, dict]:
