@@ -1013,6 +1013,8 @@ class Ads:
     def __init__(self, id: Union[int, Doctor, Patient]):
         # Тип рекламы
         adType = type(self.Ad())
+        # Автор
+        self.__author: Union[Doctor, Patient] = None
         # Список реклам
         self.__ads: List[adType] = []
         # Определяем тип переменной
@@ -1040,6 +1042,8 @@ class Ads:
                 # Вносим результат
                 self.__ads.append(ad)
         elif isinstance(id, Doctor) or isinstance(id, Patient):
+            # Автор
+            self.__author: Union[Doctor, Patient] = id
             # Выполняем поиск по ID автора
             result: Union[list, type(None)] = database.execute('SELECT * FROM ads WHERE author=?',
                                                                (id.get()['id'],)).fetchall()
@@ -1064,6 +1068,56 @@ class Ads:
                     ad.exsist = True
                     # Вносим результат
                     self.__ads.append(ad)
+
+    # Создание рекламы
+    def createAd(self, label: str, description: str, photo: Union[bytes, type(None)] = None,
+                 author: Union[Doctor, Patient, type(None)] = None) -> sqlite3.Cursor:
+        # Тип рекламы
+        adType = type(self.Ad())
+        # Если автор есть
+        if self.__author is None and author is not None:
+            # Назначаем автора
+            self.__author = author
+        # Если есть автор
+        if self.__author is not None:
+            # Если есть фото
+            if photo is not None:
+                # Создаём рекламу
+                ad: adType = self.Ad()
+                # Наполняем поля
+                ad.author = self.__author
+                ad.label = label
+                ad.photo = photo
+                ad.description = description
+                ad.exsist = True
+                # Создаём рекламное объявление
+                self.__ads.append(ad)
+                # Делаем запрос к БД
+                result: sqlite3.Cursor = database.execute('INSERT INTO ads SET label="?", '
+                                                          'description="?", photo=?, author=?',
+                                                          (label, description, photo,
+                                                           self.__author.get()['id']))
+                connection.commit()
+                return result
+            else:
+                # Создаём рекламу
+                ad: adType = self.Ad()
+                # Наполняем поля
+                ad.author = self.__author
+                ad.label = label
+                ad.description = description
+                ad.exsist = True
+                # Создаём рекламное объявление
+                self.__ads.append(ad)
+                # Делаем запрос к БД
+                result: sqlite3.Cursor = database.execute(
+                    'INSERT INTO ads SET label="?", description="?", author=?',
+                    (label, description, self.__author.get()['id']))
+                connection.commit()
+                return result
+        else:
+            # Выбрасываем ошибку
+            raise KeyError("Author of ad is not set!")
 
     # Получение реклам
     def getAds(self) -> Union[List[Ad], type(None)]:
