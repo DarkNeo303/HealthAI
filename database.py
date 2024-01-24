@@ -47,7 +47,8 @@ database.execute('''
         label VARCHAR(255) NOT NULL,
         description TEXT NOT NULL,
         author INTEGER NOT NULL,
-        photo BLOB
+        photo BLOB,
+        experies VARCHAR(255),
     )
 ''')
 
@@ -1006,6 +1007,7 @@ class Ads:
         label: str = None
         description: str = None
         author: Union[Doctor, Patient] = None
+        experies: datetime.date = None
         photo: bytes = None
         exsist: bool = False
 
@@ -1031,6 +1033,12 @@ class Ads:
                 ad.label = result[1]
                 ad.description = result[2]
                 ad.author = getUser(int(result[3]))
+                try:
+                    # Получаем дату
+                    ad.experies = datetime.datetime.strptime(result[5], '%Y%m%d')
+                except Exception:
+                    # Записываем ошибку
+                    ad.experies = None
                 try:
                     # Получаем фото
                     ad.photo = result[4]
@@ -1059,6 +1067,12 @@ class Ads:
                     ad.label = item[1]
                     ad.description = item[2]
                     try:
+                        # Получаем дату
+                        ad.experies = datetime.datetime.strptime(result[5], '%Y%m%d')
+                    except Exception:
+                        # Записываем ошибку
+                        ad.experies = None
+                    try:
                         # Получаем фото
                         ad.photo = item[4]
                     except Exception:
@@ -1071,7 +1085,10 @@ class Ads:
 
     # Создание рекламы
     def createAd(self, label: str, description: str, photo: Union[bytes, type(None)] = None,
-                 author: Union[Doctor, Patient, type(None)] = None) -> sqlite3.Cursor:
+                 author: Union[Doctor, Patient, type(None)] = None,
+                 experies: Union[datetime.date, type(None)] = datetime.date.today() + datetime.timedelta(
+                                                                  days=int(os.getenv('ADEXP'))
+                                                              )) -> sqlite3.Cursor:
         # Тип рекламы
         adType = type(self.Ad())
         # Если автор есть
@@ -1089,6 +1106,12 @@ class Ads:
                 ad.label = label
                 ad.photo = photo
                 ad.description = description
+                try:
+                    # Получаем дату
+                    ad.experies = experies.strftime('%Y%m%d')
+                except Exception:
+                    # Записываем ошибку
+                    ad.experies = None
                 ad.exsist = True
                 # Создаём рекламное объявление
                 self.__ads.append(ad)
@@ -1106,6 +1129,12 @@ class Ads:
                 ad.author = self.__author
                 ad.label = label
                 ad.description = description
+                try:
+                    # Получаем дату
+                    ad.experies = experies.strftime('%Y%m%d')
+                except Exception:
+                    # Записываем ошибку
+                    ad.experies = None
                 ad.exsist = True
                 # Создаём рекламное объявление
                 self.__ads.append(ad)
@@ -1118,6 +1147,27 @@ class Ads:
         else:
             # Выбрасываем ошибку
             raise KeyError("Author of ad is not set!")
+
+    # Проверка рекламы
+    def checkAd(self):
+        # Если есть реклама
+        if self.__ads:
+            # Иттерация по рекламе
+            for item in self.__ads:
+                # Проверка типа даты
+                if item is not None:
+                    # Проверка срока давности
+                    if item.experies == datetime.date.today():
+                        # Удаляем рекламу
+                        self.removeAd(item.id)
+
+    # Удаление рекламы
+    @staticmethod
+    def removeAd(id: int) -> sqlite3.Cursor:
+        # Запрос к базе данных
+        result: sqlite3.Cursor = database.execute('DELETE FROM ads WHERE id=?', (id,))
+        connection.commit()
+        return result
 
     # Получение реклам
     def getAds(self) -> Union[List[Ad], type(None)]:
