@@ -40,6 +40,17 @@ database.execute('''
     )
 ''')
 
+# Создание таблицы с рекламой
+database.execute('''
+    CREATE TABLE IF NOT EXISTS ads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        label VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        author INTEGER NOT NULL,
+        photo BLOB
+    )
+''')
+
 # Создание таблицы пациентов
 database.execute('''
     CREATE TABLE IF NOT EXISTS patients (
@@ -983,6 +994,93 @@ class Admin:
                 'prefix': self.__prefix
             }
         # Возвращаем ошибку
+        return None
+
+
+# Класс рекламы
+class Ads:
+    # Класс одной рекламы
+    @dataclass
+    class Ad:
+        id: int = None
+        label: str = None
+        description: str = None
+        author: Union[Doctor, Patient] = None
+        photo: bytes = None
+        exsist: bool = False
+
+    # Инициализация
+    def __init__(self, id: Union[int, Doctor, Patient]):
+        # Тип рекламы
+        adType = type(self.Ad())
+        # Список реклам
+        self.__ads: List[adType] = []
+        # Определяем тип переменной
+        if isinstance(id, int):
+            # Выполняем поиск по ID
+            result: Union[tuple, type(None)] = database.execute('SELECT * FROM ads WHERE id=?',
+                                                                (id,)).fetchone()
+            # Если есть результат
+            if result is not None:
+                # Создаём рекламу
+                ad: adType = self.Ad()
+                # Получаем поля
+                ad.id = id
+                ad.label = result[1]
+                ad.description = result[2]
+                ad.author = getUser(int(result[3]))
+                try:
+                    # Получаем фото
+                    ad.photo = result[4]
+                except Exception:
+                    # Записываем ошибку
+                    ad.photo = None
+                # Если есть результат
+                ad.exsist = result is not None
+                # Вносим результат
+                self.__ads.append(ad)
+        elif isinstance(id, Doctor) or isinstance(id, Patient):
+            # Выполняем поиск по ID автора
+            result: Union[list, type(None)] = database.execute('SELECT * FROM ads WHERE author=?',
+                                                               (id.get()['id'],)).fetchall()
+            # Если есть список
+            if result is not None and result:
+                # Иттерация по списку
+                for item in result:
+                    # Создаём рекламу
+                    ad: adType = None
+                    # Получаем поля
+                    ad.id = item[0]
+                    ad.author = id.get()['id']
+                    ad.label = item[1]
+                    ad.description = item[2]
+                    try:
+                        # Получаем фото
+                        ad.photo = item[4]
+                    except Exception:
+                        # Записываем ошибку
+                        ad.photo = None
+                    # Есть результат
+                    ad.exsist = True
+                    # Вносим результат
+                    self.__ads.append(ad)
+
+    # Получение реклам
+    def getAds(self) -> Union[List[Ad], type(None)]:
+        # Если есть реклама
+        if self.__ads:
+            # Возвращаем результат
+            return self.__ads
+        # Возвращаем результат
+        return None
+
+    # Получение автора
+    def authorGet(self) -> Union[Doctor, Patient, type(None)]:
+        # Если есть реклама
+        if self.__ads:
+            # Возвращаем пользователя
+            return self.__ads[0].author
+        # Возвращаем результат
         return None
 
 
