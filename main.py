@@ -733,6 +733,11 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                                                                  f"{patient.get()['id']}|2"),
             )
             keyboard.add(
+                telebot.types.InlineKeyboardButton("✏ Заполнить историю",
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|11"),
+            )
+            keyboard.add(
                 telebot.types.InlineKeyboardButton("🤖 Подсказки ИИ | Прогноз",
                                                    callback_data=f"healCabinet|{doctor.get()['id']}|"
                                                                  f"{patient.get()['id']}|3"),
@@ -930,6 +935,58 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             # Ломаем функцию
             break
         elif case(10):
+            # Ломаем функцию
+            break
+        elif case(11):
+            # Клавиатура
+            keyboard = telebot.types.InlineKeyboardMarkup()
+            keyboard.add(
+                telebot.types.InlineKeyboardButton("🤕 Жалобы",
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|12"),
+                telebot.types.InlineKeyboardButton("💊 Лечение",
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|13"),
+            )
+            keyboard.add(
+                telebot.types.InlineKeyboardButton("❣ Диагнозы",
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|14"),
+                telebot.types.InlineKeyboardButton("📊 Прогнозы",
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|15")
+            )
+            keyboard.add(
+                telebot.types.InlineKeyboardButton("💉 Анализы",
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|16"),
+                telebot.types.InlineKeyboardButton("🚑 Общая история",
+                                                   callback_data=f"healCabinet|{doctor.get()['id']}|"
+                                                                 f"{patient.get()['id']}|17")
+            )
+            keyboard.add(
+                telebot.types.InlineKeyboardButton("❌ Свернуть", callback_data=f"hide")
+            )
+            # Отправляем сообщение
+            sendMessage('🚑 <b>Меню заполнения истории болезни:</b>', doctor, reply=keyboard)
+            # Ломаем функцию
+            break
+        elif case(12):
+            # Ломаем функцию
+            break
+        elif case(13):
+            # Ломаем функцию
+            break
+        elif case(14):
+            # Ломаем функцию
+            break
+        elif case(15):
+            # Ломаем функцию
+            break
+        elif case(16):
+            # Ломаем функцию
+            break
+        elif case(17):
             # Ломаем функцию
             break
         elif case():
