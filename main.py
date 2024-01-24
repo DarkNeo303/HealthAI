@@ -877,7 +877,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 telebot.types.InlineKeyboardButton("❌ Свернуть", callback_data=f"hide")
             )
             # Отправляем сообщение
-            sendMessage('📊 <b>Меню создания опросников:</b>', reply=keyboard)
+            sendMessage('📊 <b>Меню создания опросников:</b>', doctor, reply=keyboard)
             # Ломаем функцию
             break
         elif case(3):
@@ -921,6 +921,15 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             else:
                 # Отсылаем сообщение
                 sendMessage(f'❌ Выписка отменена', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            # Ломаем функцию
+            break
+        elif case(8):
+            # Ломаем функцию
+            break
+        elif case(9):
+            # Ломаем функцию
+            break
+        elif case(10):
             # Ломаем функцию
             break
         elif case():
