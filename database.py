@@ -48,7 +48,7 @@ database.execute('''
         description TEXT NOT NULL,
         author INTEGER NOT NULL,
         photo BLOB,
-        experies VARCHAR(255),
+        experies VARCHAR(255)
     )
 ''')
 
