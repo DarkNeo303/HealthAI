@@ -89,6 +89,17 @@ database.execute('''
 # Сохранение изменений
 connection.commit()
 
+# Изображения
+photos: dict = {}
+# Если папка с изображениями не пуста
+if os.listdir(os.getenv('IMAGES')):
+    # Инициализация фотографий
+    for file in os.listdir(os.getenv('IMAGES')):
+        # Открываем фотографию
+        with open(os.getenv('IMAGES')+file, 'rb') as ph:
+            # Вносим фото
+            photos[file.split('.')[0]] = ph.read()
+
 
 # Операции
 class Operations(Enum):

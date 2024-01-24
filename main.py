@@ -15,9 +15,9 @@ from typing import Union, List
 from dotenv import load_dotenv
 from database import getAllUserList
 from deep_translator import GoogleTranslator
-from database import Admin, Operations, Ads, getAllAds
-from support import checkInt, Switch, ram, stringToBool
 from database import Patient, Doctor, getUser, History
+from support import checkInt, Switch, ram, stringToBool
+from database import Admin, Operations, Ads, getAllAds, photos
 
 # Инициализация
 ai.initAi()
@@ -1123,26 +1123,34 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                     else:
                         # Отправляем сообщение
                         sendMessage('❌ Невозможно завершить операцию - вы не врач!', message['user'])
+                    # Ломаем цикл
+                    break
                 elif case(defaultArgs[6]):
-                    pass
+                    # Ломаем цикл
+                    break
                 elif case(defaultArgs[7]):
                     # Клавиатура
                     keyboard = telebot.types.InlineKeyboardMarkup()
                     keyboard.add(
-                        telebot.types.InlineKeyboardButton(f"✔ Купить за {os.getenv('PREMAMMOUNT')}",
+                        telebot.types.InlineKeyboardButton(f"✔ Купить за {os.getenv('PREMAMMOUNT')}₽",
                                                            callback_data=f"buyPrem|{message['user'].get()['id']}"),
                         telebot.types.InlineKeyboardButton("❌ Отказаться", callback_data="hide"),
                     )
                     # Отсылаем сообщение
                     sendMessage(f'💎 <b>С HealthPremium Вы сможете:</b>\n\n'
-                                f'1. Игнорировать ежедневную рекламу'
-                                f'2. Поддержать развивающийся проект'
+                                f'1. Игнорировать ежедневную рекламу\n'
+                                f'2. Поддержать развивающийся проект\n'
                                 f'3. Получить буст среди ожидающих приёма\n\n'
-                                f'💸 <b>Цена: {os.getenv("PREMAMMOUNT")}</b>', message['user'])
+                                f'💸 <b>Цена: {os.getenv("PREMAMMOUNT")}₽/мес.</b>', message['user'],
+                                photo=photos['Premium'], reply=keyboard)
+                    # Ломаем цикл
+                    break
                 elif case(defaultArgs[8]):
-                    pass
+                    # Ломаем цикл
+                    break
                 elif case(defaultArgs[9]):
-                    pass
+                    # Ломаем цикл
+                    break
             # Возвращаем значение
             return None
         # Если пользователь - админ
