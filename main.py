@@ -2753,6 +2753,18 @@ def makeContactFixed(call: telebot.types.Message,
         return False
 
 
+# Опрос премиум пользователей
+def checkPremiumUsers():
+    # Вечный цикл
+    while True:
+        # Иттерация по списку
+        for user in getAllUserList():
+            # Запускаем проверку Premium
+            user.checkPremium()
+        # Задержка
+        time.sleep(int(os.getenv('TIMER')))
+
+
 # Очистка ОЗУ
 def clearRAM(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequired: int = 5):
     # Вечный цикл
@@ -2784,8 +2796,9 @@ def clearRAM(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequired: in
         time.sleep(int(os.getenv('TIMER')))
 
 
-# Запуск постоянной очистки
+# Запуск постоянной очистки и проверки премиума
 threading.Thread(target=clearRAM, args=(ram,)).start()
+threading.Thread(target=checkPremiumUsers).start()
 
 # Цикл
 bot.infinity_polling()
