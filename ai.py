@@ -26,11 +26,16 @@ load_dotenv()
 templates: dict = {}
 initialized: bool = False
 
+# Читаем файл взлома GPT
+with open('hack.json', 'r', encoding=os.getenv('CODEC')) as hackFile:
+    # Запоминаем содержимое
+    hack: dict = json.loads(hackFile.read())
+
 
 # Метод управления запросом
 def getResponse(message: str,
                 model: str = str(os.getenv("GPT")),
-                provider: g4f.Provider = g4f.Provider.FakeGpt) -> str:
+                provider: g4f.Provider = g4f.Provider.FakeGpt, useHack: bool = True) -> str:
     # Если режим отладки
     if stringToBool(os.getenv("DEBUG")):
         # Доступные провайдеры
@@ -40,12 +45,21 @@ def getResponse(message: str,
             if provider.working
         ])
     try:
-        # Ответ
-        response = g4f.ChatCompletion.create(
-            model=model,
-            provider=provider,
-            messages=[{"role": "user", "content": message}],
-        )
+        # Если нужно использовать взлом
+        if useHack:
+            # Ответ
+            response = g4f.ChatCompletion.create(
+                model=model,
+                provider=provider,
+                messages=[{"role": "user", "content": hack['prompt'] + message}],
+            )
+        else:
+            # Ответ
+            response = g4f.ChatCompletion.create(
+                model=model,
+                provider=provider,
+                messages=[{"role": "user", "content": message}],
+            )
         # Если режим отладки
         if stringToBool(os.getenv("DEBUG")):
             # Выводим ответ
