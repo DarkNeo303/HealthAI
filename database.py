@@ -581,9 +581,12 @@ class Patient:
                 if 'answers' in data and data['answers']:
                     # Перебор списка
                     for answer in data['answers']:
+                        # Табличные ответы
+                        tableAns: History.TableAnswers = History.TableAnswers()
+                        tableAns.table = self.__parseTable(answer['table'])
+                        tableAns.answers = answer['answers']
                         # Добавляем ответы
-                        answers.append(History.TableAnswers(self.__parseTable(0, answer['table']),
-                                                            answer['answers']))
+                        answers.append(tableAns)
                 # Возвращаем значение
                 return History(data['predict'], data['analyzes'], data['complaints'],
                                data['description'], datetime.datetime.strptime(data['assigned'],
@@ -615,7 +618,7 @@ class Patient:
                 # Получаем ответы
                 for answer in data.answers:
                     # Вносим ответы
-                    answers.append({"table": self.__parseTable(0, answer.table), "answers": answer.answers})
+                    answers.append({"table": self.__parseTable(answer.table), "answers": answer.answers})
             # Возвращаем результат
             return {
                 'predict': data.predict,
@@ -630,57 +633,59 @@ class Patient:
             }
 
     # Парсинг таблицы
-    def __parseTable(self, id: int, data: Union[Table, dict], allTables: bool = True) -> Union[Table, dict]:
-        # Если в класс
-        if isinstance(data, dict):
-            try:
-                # Возвращаем таблицу
-                return Table(id, data['title'], data['expires'], data['assigned'], data['replyable'], data['variants'])
-            except Exception:
-                # Выбрасываем ошибку
-                raise self.TableError
-        elif isinstance(data, Table):
-            # Если парсинг всех таблиц
-            if allTables:
-                # Результат
-                result: dict = {}
-                # Получаем существующие таблицы
-                db: list = database.execute(f'SELECT tables FROM patients WHERE id={self.__id}').fetchall()
-                # Перебор списка
-                for i in range(len(db)):
-                    # Наполнение словаря
-                    result[i] = db[i]
-                # Вариативные ответы
-                variants: dict = {}
-                # Формируем варианты
-                for item in data.variants:
-                    # Вносим варианты
-                    variants[item.question] = item.variants
-                # Запись словаря
-                result[id] = {
-                    "title": data.title,
-                    "expires": data.expires,
-                    "assigned": data.assigned,
-                    "replyable": data.replyable,
-                    "variants": data.variants
-                }
-                # Возвращаем результат
-                return result
-            else:
-                # Вариативные ответы
-                variants: dict = {}
-                # Формируем варианты
-                for item in data.variants:
-                    # Вносим варианты
-                    variants[item.question] = item.variants
-                # Запись словаря
-                return {
-                    "title": data.title,
-                    "expires": data.expires,
-                    "assigned": data.assigned,
-                    "replyable": data.replyable,
-                    "variants": data.variants
-                }
+    @staticmethod
+    def __parseTable(data: Union[Table, dict]) -> Union[Table, dict]:
+        # Проверка типов
+        if isinstance(data, Table):
+            # Результат
+            result: dict = {
+                "id": data.id,
+                "title": data.title,
+                "expires": data.expires.strftime(os.getenv('DATEFORMAT')),
+                "assigned": data.assigned.strftime(os.getenv('DATEFORMAT')),
+                "replyable": data.replyable,
+            }
+            # Иттерация по вариантам
+            for variant in range(len(data.variants)):
+                # Если есть ключ
+                if 'variants' in result:
+                    # Вносим вариант
+                    result['variants'].append({
+                        "variants": data.variants[variant].variants,
+                        "question": data.variants[variant].question
+                    })
+                else:
+                    # Создаём список
+                    result['variants'] = []
+                    # Вносим вариант
+                    result['variants'].append({
+                        "variants": data.variants[variant].variants,
+                        "question": data.variants[variant].question
+                    })
+            # Возвращаем словарь
+            return result
+        elif isinstance(data, dict):
+            # Результат
+            result: Table = Table()
+            # Вносим значения
+            result.id = data['id']
+            result.title = data['title']
+            result.expires = data['expires']
+            result.assigned = data['assigned']
+            result.replyable = data['replyable']
+            # Если есть варианты
+            if data['variants']:
+                # Иттерация по списку
+                for variant in data['variants']:
+                    # Вариант
+                    v: Table.Variant = Table.Variant()
+                    # Наполняем вариант
+                    v.variants = variant['variants']
+                    v.question = variant['question']
+                    # Вносим вариант
+                    result.variants.append(v)
+            # Возвращаем результат
+            return result
 
     # Создание истории болезни
     def createHistory(self, doctors: Union[List[Doctor], type(None)] = None) -> Tuple[History, sqlite3.Cursor]:
@@ -765,7 +770,7 @@ class Patient:
                 for key in dict(json.loads(result[7])).keys():
                     try:
                         # Добавляем таблицу в список
-                        self.__tables.append(self.__parseTable(int(key), dict(json.loads(result[7]))[key]))
+                        self.__tables.append(self.__parseTable(dict(json.loads(result[7]))[key]))
                     except Exception:
                         pass
             except Exception:
@@ -835,8 +840,26 @@ class Patient:
     def getTables(self) -> List[Table]:
         return self.__tables
 
+    # Внесение таблиц
+    def addTable(self, table: Table) -> sqlite3.Cursor:
+        # Таблицы
+        parsedTables: List[dict] = []
+        # Вносим таблицу
+        self.__tables.append(table)
+        # Иттерация по таблицам
+        for tab in self.__tables:
+            # Вносим таблицу
+            parsedTables.append(self.__parseTable(tab))
+        # Обновляем БД
+        result = self.__db.execute(f'UPDATE patients SET tables={json.dumps(parsedTables)}')
+        connection.commit()
+        # Возвращаем результат
+        return result
+
     # Удаление таблицы
     def removeTable(self, id: int) -> sqlite3.Cursor:
+        # Таблицы
+        parsedTables: List[dict] = []
         # Иттерация по списку
         for table in self.__tables:
             # Если найдено ID
@@ -844,8 +867,12 @@ class Patient:
                 # Удаялем таблицу
                 self.__tables.remove(table)
                 break
+        # Иттерация по таблицам
+        for table in self.__tables:
+            # Вносим таблицу
+            parsedTables.append(self.__parseTable(table))
         # Обновляем БД
-        result = self.__db.execute(f'UPDATE patients SET tables={self.__tables}')
+        result = self.__db.execute(f'UPDATE patients SET tables={json.dumps(parsedTables)}')
         connection.commit()
         # Возвращаем результат
         return result
@@ -925,11 +952,9 @@ class Patient:
             if isinstance(value, Table):
                 # Обновление поля
                 self.__tables.append(value)
-                # Получаем максимальный ID
-                id: int = len(database.execute(f'SELECT tables FROM patients WHERE id={self.__id}').fetchall()) + 1
                 # Обновляем БД
                 result = self.__db.execute(f'UPDATE patients SET '
-                                           f'tables="{self.__parseTable(id, value)}" WHERE id={self.__id}')
+                                           f'tables="{json.dumps(self.__parseTable(value))}" WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:

@@ -900,6 +900,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             # Ломаем функцию
             break
         elif case(2):
+            patient.getTables()
             # Клавиатура
             keyboard = telebot.types.InlineKeyboardMarkup()
             keyboard.add(
