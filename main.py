@@ -900,7 +900,6 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             # Ломаем функцию
             break
         elif case(2):
-            patient.getTables()
             # Клавиатура
             keyboard = telebot.types.InlineKeyboardMarkup()
             keyboard.add(
@@ -921,6 +920,49 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             )
             # Отправляем сообщение
             sendMessage('📊 <b>Меню создания опросников:</b>', doctor, reply=keyboard)
+            # Если есть опросники
+            if patient.getTables():
+                # Сообщение
+                tableMessage: str = '📊 <b>Действующие опросники:</b>\n\n'
+                # Иттерация по опросникам
+                for table in patient.getTables():
+                    # Вносим опросник
+                    tableMessage += f'{table.id + 1}. {table.title}\nДобавлен: {table.assigned.strftime(
+                        os.getenv("DATEFORMAT"))}\nИстекает: {table.expires.strftime(os.getenv("DATEFORMAT"))}'
+                    # Если есть вопросы с ответом
+                    if table.replyable:
+                        # Иттератор
+                        questionCount: int = 0
+                        # Вносим заголовок
+                        tableMessage += '\n\n<b>Вопросы с ответом</b>\n'
+                        # Иттерация по вопросам
+                        for replyable in table.replyable:
+                            # Прибавляем иттератор
+                            questionCount += 1
+                            # Вносим вопросы
+                            tableMessage += f'{questionCount}. {replyable}\n'
+                        # Удаляем последний символ
+                        tableMessage = tableMessage[:-1]
+                    # Если есть варианты с ответами
+                    if table.variants:
+                        # Иттератор
+                        questionCount: int = 0
+                        # Вносим заголовок
+                        tableMessage += '\n\n<b>Вопросы с вариантами ответов</b>\n'
+                        # Иттерация по вариантам
+                        for variant in table.variants:
+                            # Прибавляем иттератор
+                            questionCount += 1
+                            # Вносим вопросы
+                            tableMessage += f'{questionCount}. {variant.question}\nВарианты ответов: '
+                            # Иттерация по вариантам ответов
+                            for v in variant.variants:
+                                # Вносим вопросы
+                                tableMessage += f'{v}, '
+                            # Удаляем последний символ
+                            tableMessage = tableMessage[:-2]
+                # Отправляем сообщение
+                sendMessage(tableMessage, doctor)
             # Ломаем функцию
             break
         elif case(3):
@@ -970,9 +1012,112 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             # Ломаем функцию
             break
         elif case(9):
+            # Если есть опросники
+            if patient.getTables():
+                # Отправляем заголовок
+                sendMessage('📊 <b>Действующие опросники:</b>', doctor)
+                # Иттерация по опросникам
+                for table in patient.getTables():
+                    # Клавиатура
+                    keyboard = telebot.types.InlineKeyboardMarkup()
+                    keyboard.add(
+                        telebot.types.InlineKeyboardButton("❌ Удалить опросник",
+                                                           callback_data=f"removeTable|{doctor.get()['id']}|"
+                                                                         f"{patient.get()['id']}|{table.id}"),
+                    )
+                    # Вносим опросник
+                    tableMessage: str = f'{table.id + 1}. {table.title}\nДобавлен: {table.assigned.strftime(
+                        os.getenv("DATEFORMAT"))}\nИстекает: {table.expires.strftime(os.getenv("DATEFORMAT"))}'
+                    # Если есть вопросы с ответом
+                    if table.replyable:
+                        # Иттератор
+                        questionCount: int = 0
+                        # Вносим заголовок
+                        tableMessage += '\n\n<b>Вопросы с ответом</b>\n'
+                        # Иттерация по вопросам
+                        for replyable in table.replyable:
+                            # Прибавляем иттератор
+                            questionCount += 1
+                            # Вносим вопросы
+                            tableMessage += f'{questionCount}. {replyable}\n'
+                        # Удаляем последний символ
+                        tableMessage = tableMessage[:-1]
+                    # Если есть варианты с ответами
+                    if table.variants:
+                        # Иттератор
+                        questionCount: int = 0
+                        # Вносим заголовок
+                        tableMessage += '\n\n<b>Вопросы с вариантами ответов</b>\n'
+                        # Иттерация по вариантам
+                        for variant in table.variants:
+                            # Прибавляем иттератор
+                            questionCount += 1
+                            # Вносим вопросы
+                            tableMessage += f'{questionCount}. {variant.question}\nВарианты ответов: '
+                            # Иттерация по вариантам ответов
+                            for v in variant.variants:
+                                # Вносим вопросы
+                                tableMessage += f'{v}, '
+                            # Удаляем последний символ
+                            tableMessage = tableMessage[:-2]
+                    # Отправляем опросник
+                    sendMessage(tableMessage, doctor, reply=keyboard)
             # Ломаем функцию
             break
         elif case(10):
+            # Сообщение
+            tableMessage: str = '📊 <b>Полученные ответы пациента:</b>\n\n'
+            # Иттерация по ответам
+            for i in range(len(patient.getHistory().answers)):
+                # Получаем таблицу
+                table = patient.getHistory().answers[i].table
+                # Сообщение
+                tableMessage += f'{i+1}. <b>Информация об опросе:</b>\n\n'
+                # Вносим опросник
+                tableMessage += f'{table.id + 1}. {table.title}\nДобавлен: {table.assigned.strftime(
+                    os.getenv("DATEFORMAT"))}\nИстекает: {table.expires.strftime(os.getenv("DATEFORMAT"))}'
+                # Если есть вопросы с ответом
+                if table.replyable:
+                    # Иттератор
+                    questionCount: int = 0
+                    # Вносим заголовок
+                    tableMessage += '\n\n<b>Вопросы с ответом</b>\n'
+                    # Иттерация по вопросам
+                    for replyable in table.replyable:
+                        # Прибавляем иттератор
+                        questionCount += 1
+                        # Вносим вопросы
+                        tableMessage += f'{questionCount}. {replyable}\n'
+                    # Удаляем последний символ
+                    tableMessage = tableMessage[:-1]
+                # Если есть варианты с ответами
+                if table.variants:
+                    # Иттератор
+                    questionCount: int = 0
+                    # Вносим заголовок
+                    tableMessage += '\n\n<b>Вопросы с вариантами ответов</b>\n'
+                    # Иттерация по вариантам
+                    for variant in table.variants:
+                        # Прибавляем иттератор
+                        questionCount += 1
+                        # Вносим вопросы
+                        tableMessage += f'{questionCount}. {variant.question}\nВарианты ответов: '
+                        # Иттерация по вариантам ответов
+                        for v in variant.variants:
+                            # Вносим вопросы
+                            tableMessage += f'{v}, '
+                        # Удаляем последний символ
+                        tableMessage = tableMessage[:-2]
+                # Вносим заголовок
+                tableMessage += '\n<b>Ответы:<b>\n'
+                # Иттерация по ответам
+                for x in range(len(patient.getHistory().answers[i].answers)):
+                    # Вносим ответы
+                    tableMessage += f'{x+1}. {patient.getHistory().answers[i].answers[x]}\n'
+                # Выносим отступ
+                tableMessage = tableMessage[:-1]
+            # Отсылаем сообщение
+            sendMessage(tableMessage, doctor)
             # Ломаем функцию
             break
         elif case(11):
@@ -1214,7 +1359,7 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
     # Указываем значение по умолчанию
     defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo", "kickPatientDoctor",
                                   "kickDoctorPatient", "kickDoctorDoctor", "healCabinet",
-                                  "clearAd", "premium", "myAds", "buyPrem"]
+                                  "clearAd", "premium", "myAds", "buyPrem", 'removeTable']
     # Пользователь
     user: Union[Patient, Doctor, type(None)] = None
     try:
@@ -1348,6 +1493,29 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                     # Ломаем цикл
                     break
                 elif case(defaultArgs[9]):
+                    # Ломаем цикл
+                    break
+                elif case(defaultArgs[10]):
+                    # Если получен пациент
+                    if isinstance(getUser(int(message['params'][1])), Patient):
+                        # Если есть таблицы
+                        if getUser(int(message['params'][1])).getTables():
+                            # Иттерация по таблицам
+                            for item in getUser(int(message['params'][1])).getTables():
+                                # Если ID совпали
+                                if int(message["params"][2]) == item.id:
+                                    # Удаляем опросник
+                                    getUser(int(message['params'][1])).removeTable(item.id)
+                                    # Информируем пользователей
+                                    sendMessage(f'✔ Опросник с ID {message["params"][2]} был удалён!',
+                                                message['user'])
+                                    sendMessage(f'💥 Опросник с ID {message["params"][2]} был удалён '
+                                                f'доктором {message['user'].get()["username"]}!',
+                                                getUser(int(message['params'][1])))
+                                    # Ломаем цикл
+                                    break
+                    # Информируем пользователей
+                    sendMessage(f'❌ Опросник с ID {message["params"][2]} не был найден!', message['user'])
                     # Ломаем цикл
                     break
             # Возвращаем значение
