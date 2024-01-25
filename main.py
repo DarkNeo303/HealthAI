@@ -12,6 +12,7 @@ import os
 import time
 import telebot
 import threading
+from pympler import muppy
 from random import choice
 from typing import Union, List
 from dotenv import load_dotenv
@@ -25,6 +26,15 @@ from database import Admin, Operations, Ads, getAllAds, photos, removePremium
 ai.initAi()
 load_dotenv()
 bot: telebot.TeleBot = telebot.TeleBot(os.getenv("TOKEN"))
+
+# Если Debug
+if stringToBool(os.getenv('DEBUG')):
+    # Информируем пользователя
+    print('Python Debug is started successfuly!')
+    # Инициализация отладчика
+    objects: list = muppy.get_objects()
+    # Информируем пользователя
+    print('\n\n', objects, '\n\n')
 
 '''
 ======================================
