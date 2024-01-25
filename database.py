@@ -626,13 +626,13 @@ class Patient:
             diagnoses: List[dict] = []
             answers: List[dict] = []
             # Если есть доктора
-            if doctors is not None and doctors:
+            if data.doctors is not None and data.doctors:
                 # Получаем ID докторов
                 for doctor in data.doctors:
                     # Вносим ID в список
                     doctors.append(doctor.get()['id'])
             # Если есть диагнозы
-            if diagnoses is not None and diagnoses:
+            if data.diagnoses is not None and data.diagnoses:
                 # Получаем диагнозы
                 for diagnosis in data.diagnoses:
                     # Вносим диагноз в список
@@ -644,7 +644,7 @@ class Patient:
                 for answer in data.answers:
                     # Вносим ответы
                     answers.append({"table": self.__parseTable(0, answer.table), "answers": answer.answers})
-            # Наполняем результат
+            # Возвращаем результат
             return {
                 'predict': data.predict,
                 'analyzes': data.analyzes,
@@ -652,6 +652,7 @@ class Patient:
                 'description': data.description,
                 'assigned': data.assigned.strftime("%d%m%Y"),
                 'medicines': data.medicines,
+                'diagnoses': diagnoses,
                 'doctors': doctors,
                 'answers': answers
             }
