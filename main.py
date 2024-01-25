@@ -1152,6 +1152,8 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 sendMessage('✏ Введите описание диагноза', doctor, reply=cancel)
                 # Регистрируем следующее событие
                 bot.register_next_step_handler(message, healCabinet, doctor, patient, 24)
+            # Ломаем функцию
+            break
         elif case(24):
             # История
             history: History = patient.getHistory()
@@ -2099,8 +2101,8 @@ def profile(message):
                 # Если есть жалобы
                 if history.complaints != 'undefined' and history.complaints != '':
                     # Сообщение
-                    msg: str = f'🤕 <b>История болезни:</b>\n\nОписание: {history.description}\nЖалобы: '
-                    f'{history.complaints}\nИстория заведена: {history.assigned}'
+                    msg: str = (f'🤕 <b>История болезни:</b>\n\nОписание: {history.description}\n'
+                                f'Жалобы: {history.complaints}\nИстория заведена: {history.assigned}')
                 else:
                     # Сообщение
                     msg: str = (f'🤕 <b>История болезни:</b>\n\nОписание: {history.description}\n'
@@ -2120,8 +2122,11 @@ def profile(message):
                 msg += f'\nАнализы: {history.analyzes}'
             # Если есть медикаменты
             if history.medicines != 'undefined' and history.medicines:
-                # Формируем сообщение
-                msg += f'\nНазначенные медикаменты: {history.medicines}'
+                msg += f'\nНазначенные медикаменты:\n'
+                # Иттерация по медикаментам
+                for i in range(0, len(history.medicines)):
+                    # Формируем сообщение
+                    msg += f'{i+1}. {history.medicines[i]}\n'
             # Отсылаем историю
             sendMessage(msg, message.chat.id, user)
             # Если есть диагнозы

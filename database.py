@@ -568,7 +568,7 @@ class Patient:
         # Если есть результат
         if result is not None and result:
             # Проверяем дату
-            if datetime.datetime.strptime(result[1], "%d%m%Y").date() == datetime.date.today():
+            if datetime.datetime.strptime(result[1], "%d%m%Y").date() >= datetime.date.today():
                 # Удаляем премиум
                 database.execute('DELETE FROM premium WHERE id=?', (self.__id,))
                 # Возвращаем результат
