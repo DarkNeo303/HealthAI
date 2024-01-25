@@ -4,6 +4,7 @@
 ======================================
 Разработчик: Савунов Александр
 """
+import datetime
 
 # Библиотеки
 import ai
@@ -18,7 +19,7 @@ from database import getAllUserList
 from deep_translator import GoogleTranslator
 from database import Patient, Doctor, getUser, History
 from support import checkInt, Switch, ram, stringToBool
-from database import Admin, Operations, Ads, getAllAds, photos
+from database import Admin, Operations, Ads, getAllAds, photos, removePremium
 
 # Инициализация
 ai.initAi()
@@ -2955,10 +2956,18 @@ def makeContactFixed(call: telebot.types.Message,
 def checkPremiumUsers():
     # Вечный цикл
     while True:
-        # Иттерация по списку
-        for user in getAllUserList():
-            # Запускаем проверку Premium
-            user.checkPremium()
+        try:
+            # Иттерация по списку
+            for user in getAllUserList():
+                # Запускаем проверку Premium
+                if isinstance(user.isPremium(), tuple):
+                    # Проверяем дату
+                    if (datetime.datetime.strptime(user.isPremium()[1], os.getenv('DATEFORMAT')).date() <=
+                            datetime.date.today()):
+                        # Удаляем пользователя
+                        removePremium(user.get()['id'])
+        except Exception:
+            pass
         # Задержка
         time.sleep(int(os.getenv('TIMER')))
 
@@ -2967,38 +2976,41 @@ def checkPremiumUsers():
 def showAds():
     # Вечный цикл
     while True:
-        # Если нужно показывать объявления
-        if stringToBool(os.getenv('SHOWADS')):
-            # Получаем все рекламные объявления
-            adversement: List[Ads.Ad] = getAllAds(True)
-            # Если список не пустой
-            if adversement:
-                # Выбираем рандомную рекламу для показа
-                ad: Ads.Ad = choice(adversement)
-                # Если есть пользователи
-                if getAllUserList(True):
-                    # Иттерация по пользователям
-                    for user in getAllUserList(True):
-                        # Если нету премиума
-                        if not user.isPremium():
-                            # Если есть фото
-                            if ad.photo is not None:
-                                # Публикуем сообщение
-                                sendMessage(f'💎 <b>Рекламное объявление: </b>{ad.label}\n\n{ad.description}\n'
-                                            f'\n<b>{ad.author.get()["username"]}</b>', user, photo=ad.photo)
-                            else:
-                                # Публикуем сообщение
-                                sendMessage(f'💎 <b>Рекламное объявление: </b>{ad.label}\n\n{ad.description}\n'
-                                            f'\n<b>{ad.author.get()["username"]}</b>', user)
-            else:
-                # Если есть пользователи
-                if getAllUserList(True):
-                    # Иттерация по пользователям
-                    for user in getAllUserList(True):
-                        # Если нету премиума
-                        if not user.isPremium():
-                            # Отсылаем уведомление
-                            premiumAdShow(user)
+        try:
+            # Если нужно показывать объявления
+            if stringToBool(os.getenv('SHOWADS')):
+                # Получаем все рекламные объявления
+                adversement: List[Ads.Ad] = getAllAds(True)
+                # Если список не пустой
+                if adversement:
+                    # Выбираем рандомную рекламу для показа
+                    ad: Ads.Ad = choice(adversement)
+                    # Если есть пользователи
+                    if getAllUserList(True):
+                        # Иттерация по пользователям
+                        for user in getAllUserList(True):
+                            # Если нету премиума
+                            if not user.isPremium():
+                                # Если есть фото
+                                if ad.photo is not None:
+                                    # Публикуем сообщение
+                                    sendMessage(f'💎 <b>Рекламное объявление: </b>{ad.label}\n\n{ad.description}\n'
+                                                f'\n<b>{ad.author.get()["username"]}</b>', user, photo=ad.photo)
+                                else:
+                                    # Публикуем сообщение
+                                    sendMessage(f'💎 <b>Рекламное объявление: </b>{ad.label}\n\n{ad.description}\n'
+                                                f'\n<b>{ad.author.get()["username"]}</b>', user)
+                else:
+                    # Если есть пользователи
+                    if getAllUserList(True):
+                        # Иттерация по пользователям
+                        for user in getAllUserList(True):
+                            # Если нету премиума
+                            if not user.isPremium():
+                                # Отсылаем уведомление
+                                premiumAdShow(user)
+        except Exception:
+            pass
         # Задержка
         time.sleep(int(os.getenv('ADTIMER')))
 

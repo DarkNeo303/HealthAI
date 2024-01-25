@@ -228,7 +228,7 @@ class Doctor:
                 pass
 
     # Проверка премиума
-    def isPremium(self) -> bool:
+    def isPremium(self) -> Union[bool, tuple]:
         # Возвращаем результат
         return (self.__db.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone() is not None and
                 self.__db.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone())
@@ -238,27 +238,13 @@ class Doctor:
         try:
             # Результат
             result: sqlite3.Cursor = self.__db.execute('INSERT INTO premium (id, expires) VALUES (?, ?)',
-                                                       (self.__id, expires.strftime("%d%m%Y")))
+                                                       (self.__id, expires.strftime(
+                                                           os.getenv('DATEFORMAT'))))
             connection.commit()
             return result
         except Exception:
             # Выбрасываем ошибку
             raise KeyError(f"Can't add premium. Premium is already added to id {self.__id}!")
-
-    # Проверка премиума
-    def checkPremium(self) -> bool:
-        # Получаем результат
-        result: Union[tuple, type(None)] = self.__db.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone()
-        # Если есть результат
-        if result is not None and result:
-            # Проверяем дату
-            if datetime.datetime.strptime(result[1], "%d%m%Y").date() == datetime.date.today():
-                # Удаляем премиум
-                self.__db.execute('DELETE FROM premium WHERE id=?', (self.__id,))
-                # Возвращаем результат
-                return False
-        # Возвращаем результат
-        return True
 
     # Проверка существования
     def isExsist(self) -> bool:
@@ -544,7 +530,7 @@ class Patient:
         lang = 4
 
     # Проверка премиума
-    def isPremium(self) -> bool:
+    def isPremium(self) -> Union[bool, tuple]:
         # Возвращаем результат
         return (database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone() is not None and
                 database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone())
@@ -554,27 +540,13 @@ class Patient:
         try:
             # Результат
             result: sqlite3.Cursor = database.execute('INSERT INTO premium (id, expires) VALUES (?, ?)',
-                                                      (self.__id, expires.strftime("%d%m%Y")))
+                                                      (self.__id, expires.strftime(
+                                                          os.getenv('DATEFORMAT'))))
             connection.commit()
             return result
         except Exception:
             # Выбрасываем ошибку
             raise KeyError(f"Can't add premium. Premium is already added to id {self.__id}!")
-
-    # Проверка премиума
-    def checkPremium(self) -> bool:
-        # Получаем результат
-        result: Union[tuple, type(None)] = database.execute(f'SELECT * FROM premium WHERE id={self.__id}').fetchone()
-        # Если есть результат
-        if result is not None and result:
-            # Проверяем дату
-            if datetime.datetime.strptime(result[1], "%d%m%Y").date() >= datetime.date.today():
-                # Удаляем премиум
-                database.execute('DELETE FROM premium WHERE id=?', (self.__id,))
-                # Возвращаем результат
-                return False
-        # Возвращаем результат
-        return True
 
     # Парсинг истории болезни
     def __parseHistory(self, data: Union[History, dict]) -> Union[History, dict]:
@@ -615,7 +587,7 @@ class Patient:
                 # Возвращаем значение
                 return History(data['predict'], data['analyzes'], data['complaints'],
                                data['description'], datetime.datetime.strptime(data['assigned'],
-                                                                               "%d%m%Y").date(),
+                                                                               os.getenv('DATEFORMAT')).date(),
                                medicines, doctors, diagnoses, answers)
             except Exception:
                 # Выбрасываем ошибку
@@ -650,7 +622,7 @@ class Patient:
                 'analyzes': data.analyzes,
                 'complaints': data.complaints,
                 'description': data.description,
-                'assigned': data.assigned.strftime("%d%m%Y"),
+                'assigned': data.assigned.strftime(os.getenv('DATEFORMAT')),
                 'medicines': data.medicines,
                 'diagnoses': diagnoses,
                 'doctors': doctors,
@@ -1390,7 +1362,12 @@ def getAllAds(inThread: bool = False) -> Union[List[Ads.Ad], type(None)]:
     return ads
 
 
-# Получение пользователя
+# Удаление премиума
+def removePremium(id: int) -> sqlite3.Cursor:
+    # Удаляем пользователя
+    return database.execute('DELETE FROM premium WHERE id=?', id)
+
+
 def getUser(id: Union[int, str]) -> Union[Patient, Doctor, type(None)]:
     # Проверка типа
     if isinstance(id, int):
