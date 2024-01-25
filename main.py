@@ -823,9 +823,8 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                     # Иттерация по медекаментам
                     for medic in range(0, len(patient.getHistory().medicines)):
                         # Вносим лекарство
-                        history += f'{medic}. {patient.getHistory().medicines[medic]}\n'
-                    # Вносим отступ
-                    history += '\n'
+                        history += f'{medic+1}. {patient.getHistory().medicines[medic].lstrip()[0].upper() + 
+                                                 patient.getHistory().medicines[medic].lstrip()[1:]}\n'
                 # Если есть диагнозы
                 if patient.getHistory().diagnoses:
                     # Иттератор
@@ -2122,11 +2121,11 @@ def profile(message):
                 msg += f'\nАнализы: {history.analyzes}'
             # Если есть медикаменты
             if history.medicines != 'undefined' and history.medicines:
-                msg += f'\nНазначенные медикаменты:\n'
+                msg += f'\n\n<b>Назначенные медикаменты:</b>\n'
                 # Иттерация по медикаментам
                 for i in range(0, len(history.medicines)):
                     # Формируем сообщение
-                    msg += f'{i+1}. {history.medicines[i]}\n'
+                    msg += f'{i+1}. {history.medicines[i].lstrip()[0].upper() + history.medicines[i].lstrip()[1:]}\n'
             # Отсылаем историю
             sendMessage(msg, message.chat.id, user)
             # Если есть диагнозы
