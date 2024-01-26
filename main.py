@@ -932,8 +932,10 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Иттерация по опросникам
                 for table in patient.getTables():
                     # Вносим опросник
-                    tableMessage += f'{table.id + 1}. {table.title}\nДобавлен: {table.assigned.strftime(
-                        os.getenv("DATEFORMAT"))}\nИстекает: {table.expires.strftime(os.getenv("DATEFORMAT"))}'
+                    tableMessage += (f'{table.id + 1}. {table.title}\nДобавлен: '
+                                     f'{datetime.datetime.strptime(table.assigned, os.getenv("DATEFORMAT"))}'
+                                     f'\nИстекает: '
+                                     f'{datetime.datetime.strptime(table.expires, os.getenv("DATEFORMAT"))}')
                     # Если есть вопросы с ответом
                     if table.replyable:
                         # Иттератор
@@ -1035,8 +1037,10 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                                                                          f"{patient.get()['id']}|{table.id}"),
                     )
                     # Вносим опросник
-                    tableMessage: str = f'{table.id + 1}. {table.title}\nДобавлен: {table.assigned.strftime(
-                        os.getenv("DATEFORMAT"))}\nИстекает: {table.expires.strftime(os.getenv("DATEFORMAT"))}'
+                    tableMessage: str = (f'{table.id + 1}. {table.title}\nДобавлен: '
+                                         f'{datetime.datetime.strptime(table.assigned, os.getenv("DATEFORMAT"))}'
+                                         f'\nИстекает: {datetime.datetime.strptime(table.expires, 
+                                                                                   os.getenv("DATEFORMAT"))}')
                     # Если есть вопросы с ответом
                     if table.replyable:
                         # Иттератор
@@ -1073,7 +1077,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                     sendMessage(tableMessage, doctor, reply=keyboard)
             else:
                 # Отсылаем сообщение
-                sendMessage('❣ Ответы пациента ещё не были получены', doctor)
+                sendMessage('❌ Действующие опросы не найдены!', doctor)
             # Ломаем функцию
             break
         elif case(10):

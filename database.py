@@ -5,6 +5,7 @@
 ======================================
 Разработчик: Савунов Александр
 """
+import ast
 
 # Библиотеки
 import ai
@@ -674,6 +675,7 @@ class Patient:
             result.expires = data['expires']
             result.assigned = data['assigned']
             result.replyable = data['replyable']
+            result.variants = []
             # Если есть варианты
             if data['variants']:
                 # Иттерация по списку
@@ -768,10 +770,10 @@ class Patient:
                 self.__history = None
             try:
                 # Перебор ключей
-                for key in dict(json.loads(result[7])).keys():
+                for key in json.loads(result[7].replace('\"', '').replace("\'", '\"')):
                     try:
                         # Добавляем таблицу в список
-                        self.__tables.append(self.__parseTable(dict(json.loads(result[7]))[key]))
+                        self.__tables.append(self.__parseTable(key))
                     except Exception:
                         pass
             except Exception:
@@ -851,9 +853,10 @@ class Patient:
         for tab in self.__tables:
             # Вносим таблицу
             parsedTables.append(self.__parseTable(tab))
-        print(json.dumps(parsedTables))
+        # Изменённая таблица
+        parsedData: str = '"' + json.dumps(parsedTables, ensure_ascii=False).replace("\"", "\'") + '"'
         # Обновляем БД
-        result = self.__db.execute(f'UPDATE patients SET tables="{json.dumps(parsedTables)}"')
+        result = self.__db.execute(f'UPDATE patients SET tables=?', (parsedData,))
         connection.commit()
         # Возвращаем результат
         return result
@@ -873,8 +876,10 @@ class Patient:
         for table in self.__tables:
             # Вносим таблицу
             parsedTables.append(self.__parseTable(table))
+        # Изменённая таблица
+        parsedData: str = '"' + json.dumps(parsedTables, ensure_ascii=False).replace("\"", "\'") + '"'
         # Обновляем БД
-        result = self.__db.execute(f'UPDATE patients SET tables="{json.dumps(parsedTables)}"')
+        result = self.__db.execute(f'UPDATE patients SET tables=?', (parsedData,))
         connection.commit()
         # Возвращаем результат
         return result
