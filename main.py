@@ -8,6 +8,7 @@
 # Библиотеки
 import ai
 import os
+import pytz
 import time
 import telebot
 import datetime
@@ -26,6 +27,7 @@ from database import Admin, Operations, Ads, getAllAds, photos, removePremium
 ai.initAi()
 load_dotenv()
 bot: telebot.TeleBot = telebot.TeleBot(os.getenv("TOKEN"))
+menus: list = []
 
 # Если Debug
 if stringToBool(os.getenv('DEBUG')):
@@ -55,6 +57,81 @@ skip.add(telebot.types.KeyboardButton(text="✔ Пропустить"),
 apply = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
 apply.add(telebot.types.KeyboardButton(text="✔ Подтвердить"),
           telebot.types.KeyboardButton(text="❌ Отменить"))
+
+'''
+======================================
+            ГЕНЕРАТОР МЕНЮ 
+======================================
+'''
+
+
+# Класс меню
+class Menu:
+    # Инициализация
+    def __init__(self, btns: List[telebot.types.InlineKeyboardButton], rows: int = 7, columns: int = 2,
+                 menusList=None):
+        # Применяем параметры
+        if menusList is None:
+            menusList = menus
+        self.__menusList = menusList
+        self.__btns: List[dict] = {}
+        self.__columns: int = columns
+        self.__rows: int = rows
+        self.__page: int = 0
+        # Иттераторы
+        rowItter: int = 0
+        colItter: int = 0
+        parsePage: int = 0
+        # Генерируем список
+        for item in btns:
+            # Если нет страниц
+            if 'pages' not in self.__btns:
+                # Вносим страницу
+                self.__btns['pages'] = [{
+                    'line0': []
+                }]
+            # Если допустимое кол-во
+            if colItter <= self.__columns:
+                # Иттерация
+                colItter += 1
+                # Вносим кнопки
+                self.__btns['pages'][parsePage][f'line{rowItter}'].append(item)
+            else:
+                # Если иттерация допустима
+                if rowItter <= self.__rows:
+                    # Иттерация
+                    rowItter += 1
+                    colItter = 0
+                else:
+                    # Иттерация
+                    parsePage += 1
+                    rowItter = 0
+                    colItter = 0
+                    # Проверка условий
+                    if parsePage > 0:
+                        # Вносим регуляторы
+                        self.__btns['pages'][parsePage][f'line{rowItter}'].append(
+                            telebot.types.InlineKeyboardButton('< Назад', callback_data=f'backward|{
+                                len(menusList) + 1}|{parsePage - 2}'),
+                            telebot.types.InlineKeyboardButton('Вперёд >', callback_data=f'forward|{
+                                len(menusList) + 1}|{parsePage}')
+                        )
+                    else:
+                        # Вносим регуляторы
+                        self.__btns['pages'][parsePage][f'line{rowItter}'].append(
+                            telebot.types.InlineKeyboardButton('Вперёд >', callback_data=f'forward|{
+                                len(menusList) + 1}|{parsePage}')
+                        )
+
+    # Вывод меню
+    def showMenu(self, page: int) -> List[telebot.types.InlineKeyboardButton]:
+        try:
+            # Возвращаем список
+            return self.__btns['pages'][page]
+        except Exception:
+            # Возвращаем ошибку
+            raise KeyError("Page is not found!")
+
 
 '''
 ======================================
@@ -1039,7 +1116,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                     # Вносим опросник
                     tableMessage: str = (f'{table.id + 1}. {table.title}\nДобавлен: '
                                          f'{datetime.datetime.strptime(table.assigned, os.getenv("DATEFORMAT"))}'
-                                         f'\nИстекает: {datetime.datetime.strptime(table.expires, 
+                                         f'\nИстекает: {datetime.datetime.strptime(table.expires,
                                                                                    os.getenv("DATEFORMAT"))}')
                     # Если есть вопросы с ответом
                     if table.replyable:
@@ -2780,6 +2857,96 @@ def inquiry(message):
     else:
         # Отправляем сообщение
         sendMessage(f'☝ Вы не являетесь врачём', getUser(message.from_user.id))
+
+
+# Холдер команды перезапуска
+@bot.message_handler(commands=['settings', 'setup'])
+def settings(message: telebot.types.Message, step: int = 0):
+    # Иттерация по шагам
+    for case in Switch(step):
+        # Получаем пользователя
+        user: Union[Doctor, Patient] = getUser(message.from_user.id)
+        # Проверяем вариант
+        if case(0):
+            # Клавиатура отмены
+            keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+            keyboard.add(telebot.types.KeyboardButton(text="🕐 Часовые пояса"),
+                         telebot.types.KeyboardButton(text="⚡ Частота опросов"))
+            keyboard.add(telebot.types.KeyboardButton(text="❌ Отменить"))
+            # Отправляем сообщение
+            sendMessage('🛠 <b>Добро пожаловать в кабинет настроек!</b>\n\n👇 Выберите интересующий параметр',
+                        user, photo=photos['Settings'], reply=keyboard)
+            # Регистрируем следующее событие
+            bot.register_next_step_handler(message, settings, 1)
+            # Ломаем иттерацию
+            break
+        elif case(1):
+            # Проверяем ответ
+            if 'пояса' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('👌 Получаем часовые пояса...', user, reply=telebot.types.ReplyKeyboardRemove())
+                # Клавиатура
+                keyboard = telebot.types.InlineKeyboardMarkup()
+                # Зоны времени
+                tz: List[str] = pytz.all_timezones
+                # Иттерация по поясам
+                for i in range(0, len(tz)):
+                    try:
+                        # Вносим клавишу
+                        keyboard.add(
+                            telebot.types.InlineKeyboardButton(f"🕐 {tz[i]}", callback_data=f"tz|{tz[i]}"),
+                            telebot.types.InlineKeyboardButton(f"🕐 {tz[i + 1]}", callback_data=f"tz|{tz[i + 1]}")
+                        )
+                    except IndexError:
+                        # Вносим клавишу
+                        keyboard.add(
+                            telebot.types.InlineKeyboardButton(f"🕐 {tz[i]}", callback_data=f"tz|{tz[i]}")
+                        )
+                # Вносим клавишу отмены
+                keyboard.add(telebot.types.InlineKeyboardButton("❌ Спрятать", callback_data=f"hide"))
+                # Отправляем сообщение
+                sendMessage('👇 Выберите часовые пояса из списка ниже', user, reply=keyboard)
+            elif 'частота' in message.text.lower():
+                # Клавиатура отмены
+                keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+                keyboard.add(telebot.types.KeyboardButton(text="🕐 1 раз в день"),
+                             telebot.types.KeyboardButton(text="🕐 2 раз в день"))
+                keyboard.add(telebot.types.KeyboardButton(text="🕐 3 раз в день"))
+                keyboard.add(telebot.types.KeyboardButton(text="❌ Отменить"))
+                # Отправляем сообщение
+                sendMessage('👇 Выберите частоту опросов', user, reply=keyboard)
+                # Регистрируем следующее событие
+                bot.register_next_step_handler(message, settings, 2)
+            else:
+                # Отправляем сообщение
+                sendMessage('❌ Кабинет настроек закрыт', user, reply=telebot.types.ReplyKeyboardRemove())
+            # Ломаем иттерацию
+            break
+        elif case(2):
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Кабинет настроек закрыт', user, reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                # Настройки
+                settingsDict: dict = user.getSettings()
+                settingsDict['surveys'] = int(''.join(filter(str.isdigit, message.text)))
+                # Отправляем сообщение
+                sendMessage('✔ Частота получена!', user, reply=telebot.types.ReplyKeyboardRemove())
+                # Проверка типа пользователя
+                if isinstance(user, Patient):
+                    # Обновляем настройки
+                    user.update(Patient.Types.settings, settingsDict)
+                elif isinstance(user, Doctor):
+                    # Обновляем настройки
+                    user.update(Doctor.Types.settings, settingsDict)
+            # Ломаем иттерацию
+            break
+        elif case():
+            # Ломаем иттерацию
+            break
+    # Ломаем функцию
+    return None
 
 
 # Холдер команды перезапуска
