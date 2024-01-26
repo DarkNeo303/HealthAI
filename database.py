@@ -171,6 +171,7 @@ class Doctor:
     def __init__(self, id: Union[int, str], db: sqlite3.Cursor = database):
         # Запрос
         result = None
+        settings = None
         # Курсор
         self.__db: sqlite3.Cursor = db
         # Если получено число
@@ -189,6 +190,7 @@ class Doctor:
             self.__exsist: bool = False
             # Попытка найти пользователя
             result = db.execute(f'SELECT * FROM doctors WHERE id={id}').fetchone()
+            settings = db.execute(f'SELECT * FROM settings WHERE id={id}').fetchone()
         # Если получена строка
         elif isinstance(id, str):
             # Переменные
@@ -205,6 +207,7 @@ class Doctor:
             self.__exsist: bool = False
             # Попытка найти пользователя
             result = db.execute(f'SELECT * FROM doctors WHERE username={id}').fetchone()
+            settings = db.execute(f'SELECT * FROM settings WHERE id={id}').fetchone()
         # Проверка результата
         if result is not None:
             # Устанавливаем переменные
@@ -240,6 +243,13 @@ class Doctor:
                 for id in json.loads(result[8]):
                     # Добавляем пациента
                     self.__patients.append(Patient(id))
+            except Exception:
+                pass
+        if settings is not None:
+            try:
+                # Вносим в настройки
+                self.__settings['timezone'] = settings[1]
+                self.__settings['surveys'] = settings[2]
             except Exception:
                 pass
 
@@ -754,6 +764,8 @@ class Patient:
     def __init__(self, id: Union[int, str], db: sqlite3.Cursor = database):
         # Запрос
         result = None
+        settings = None
+        # Курсор
         self.__db: sqlite3.Cursor = db
         # Если получено число
         if isinstance(id, int):
@@ -770,6 +782,7 @@ class Patient:
             self.__exsist: bool = False
             # Попытка найти пользователя
             result = self.__db.execute(f'SELECT * FROM patients WHERE id={id}').fetchone()
+            settings = self.__db.execute(f'SELECT * FROM settings WHERE id={id}').fetchone()
         # Если получена строка
         elif isinstance(id, str):
             # Переменные
@@ -785,6 +798,7 @@ class Patient:
             self.__exsist: bool = False
             # Попытка найти пользователя
             result = self.__db.execute(f'SELECT * FROM patients WHERE username={id}').fetchone()
+            settings = self.__db.execute(f'SELECT * FROM settings WHERE id={id}').fetchone()
         # Проверка результата
         if result is not None:
             # Устанавливаем переменные
@@ -813,6 +827,13 @@ class Patient:
                         self.__tables.append(self.__parseTable(key))
                     except Exception:
                         pass
+            except Exception:
+                pass
+        if settings is not None:
+            try:
+                # Вносим в настройки
+                self.__settings['timezone'] = settings[1]
+                self.__settings['surveys'] = settings[2]
             except Exception:
                 pass
 
