@@ -3449,8 +3449,8 @@ def showAdsAndCheckPremium():
         time.sleep(int(os.getenv('ADTIMER')))
 
 
-# Очистка ОЗУ
-def clearRAM(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequired: int = 5):
+# Ежеминутные процессы
+def minuteProcess(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequired: int = 5):
     # Вечный цикл
     while True:
         # Разрешение
@@ -3481,7 +3481,7 @@ def clearRAM(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequired: in
 
 
 # Запуск фоновых процессов
-threading.Thread(target=clearRAM, args=(ram,)).start()
+threading.Thread(target=minuteProcess, args=(ram,)).start()
 threading.Thread(target=showAdsAndCheckPremium).start()
 
 # Цикл
