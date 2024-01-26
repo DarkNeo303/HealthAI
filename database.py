@@ -5,7 +5,6 @@
 ======================================
 Разработчик: Савунов Александр
 """
-import ast
 
 # Библиотеки
 import ai
@@ -26,6 +25,9 @@ load_dotenv()
 connection = sqlite3.connect(os.getenv("DATA"), check_same_thread=False)
 database = connection.cursor()
 
+# Время опросов
+times: List[int] = json.loads(os.getenv('TIMES'))
+
 # Создание таблицы докторов
 database.execute('''
     CREATE TABLE IF NOT EXISTS doctors (
@@ -38,6 +40,15 @@ database.execute('''
         subordinates JSON,
         phone INTEGER,
         patients JSON
+    )
+''')
+
+# Создание таблицы настроек
+database.execute('''
+    CREATE TABLE IF NOT EXISTS settings (
+        id INTEGER PRIMARY KEY NOT NULL UNIQUE,
+        timezone VARCHAR(255),
+        surveys TINYINT
     )
 ''')
 
@@ -153,7 +164,8 @@ class Doctor:
         patients = 3,
         document = 4,
         subordinates = 5,
-        qualification = 6
+        qualification = 6,
+        settings = 7
 
     # Инициализация
     def __init__(self, id: Union[int, str], db: sqlite3.Cursor = database):
@@ -173,6 +185,7 @@ class Doctor:
             self.__discharged: int = 0
             self.__subordinates: List[Doctor] = []
             self.__patients: List[Patient] = []
+            self.__settings: dict = {}
             self.__exsist: bool = False
             # Попытка найти пользователя
             result = db.execute(f'SELECT * FROM doctors WHERE id={id}').fetchone()
@@ -188,6 +201,7 @@ class Doctor:
             self.__discharged: int = 0
             self.__subordinates: List[Doctor] = []
             self.__patients: List[Patient] = []
+            self.__settings: dict = {}
             self.__exsist: bool = False
             # Попытка найти пользователя
             result = db.execute(f'SELECT * FROM doctors WHERE username={id}').fetchone()
@@ -257,7 +271,7 @@ class Doctor:
 
     # Создание записи
     def create(self, username: str, qualification: str, document: Union[bytes, type(None)],
-               lang: str = 'ru', phone: int = 0) -> Union[Tuple[sqlite3.Cursor, sqlite3.Cursor], bool]:
+               lang: str = 'ru', phone: int = 0) -> Union[Tuple[sqlite3.Cursor, sqlite3.Cursor, sqlite3.Cursor], bool]:
         # Подтверждаем существование
         self.__exsist = True
         # Если получено число
@@ -269,8 +283,11 @@ class Doctor:
             connection.commit()
             # Обновляем телефон
             result2 = self.update(self.Types.phone, phone)
+            # Обращение к БД
+            result3 = self.__db.execute(f'INSERT INTO settings (id) VALUES (?)', (self.__id,))
+            connection.commit()
             # Возвращаем результат
-            return result1, result2
+            return result1, result2, result3
         else:
             # Выбрасываем ошибку
             raise TypeError("Username can't be recognized as 'int' type id!")
@@ -282,6 +299,10 @@ class Doctor:
         connection.commit()
         # Возвращаем результат
         return result
+
+    # Получение настроек
+    def getSettings(self) -> dict:
+        return self.__settings
 
     # Обновление пользователя
     def update(self, types: Types, value) -> Union[sqlite3.Cursor, bool]:
@@ -298,6 +319,19 @@ class Doctor:
             else:
                 # Возвращаем ошибку
                 raise TypeError("The 'phone' field requires the 'int' type!")
+        elif types == self.Types.settings:
+            # Проверка параметра
+            if isinstance(value, dict):
+                # Обновляем поле
+                self.__settings = value
+                # Обновляем БД
+                result = self.__db.execute(f'UPDATE settings SET timezone="{value["timezone"]}", '
+                                           f'surveys={value["surveys"]} WHERE id={self.__id}')
+                connection.commit()
+                return result
+            else:
+                # Возвращаем ошибку
+                raise TypeError("The 'settings' field requires the 'dict' type!")
         elif types == self.Types.lang:
             # Проверка параметра
             if isinstance(value, str):
@@ -529,7 +563,8 @@ class Patient:
         history = 1,
         tables = 2,
         age = 3,
-        lang = 4
+        lang = 4,
+        settings = 5
 
     # Проверка премиума
     def isPremium(self) -> Union[bool, tuple]:
@@ -731,6 +766,7 @@ class Patient:
             self.__phone: int = 0
             self.__history: Union[History, type(None)] = None
             self.__tables: List[Table] = []
+            self.__settings: dict = {}
             self.__exsist: bool = False
             # Попытка найти пользователя
             result = self.__db.execute(f'SELECT * FROM patients WHERE id={id}').fetchone()
@@ -745,6 +781,7 @@ class Patient:
             self.__phone: int = 0
             self.__history: Union[History, type(None)] = None
             self.__tables: List[Table] = []
+            self.__settings: dict = {}
             self.__exsist: bool = False
             # Попытка найти пользователя
             result = self.__db.execute(f'SELECT * FROM patients WHERE username={id}').fetchone()
@@ -781,7 +818,7 @@ class Patient:
 
     # Создание пациента
     def create(self, username: str, age: int, sex: bool, doctors: Union[List[Doctor], type(None)] = None,
-               lang: str = 'ru', phone: int = 0) -> sqlite3.Cursor:
+               lang: str = 'ru', phone: int = 0) -> Tuple[sqlite3.Cursor, sqlite3.Cursor]:
         # Подтверждаем существование
         self.__exsist = True
         # Если получено число
@@ -797,8 +834,11 @@ class Patient:
                                        f'VALUES (?, ?, ?, ?, ?, ?)',
                                        (self.__id, sex, lang, age, username, phone))
             connection.commit()
+            # Обращение к БД
+            result1 = self.__db.execute(f'INSERT INTO settings (id) VALUES (?)', (self.__id,))
+            connection.commit()
             # Возвращаем результат
-            return result
+            return result, result1
         else:
             # Выбрасываем ошибку
             raise TypeError("Username can't be recognized as 'int' type id!")
@@ -842,6 +882,10 @@ class Patient:
     # Получение таблиц
     def getTables(self) -> List[Table]:
         return self.__tables
+
+    # Получение настроек
+    def getSettings(self) -> dict:
+        return self.__settings
 
     # Внесение таблиц
     def addTable(self, table: Table) -> sqlite3.Cursor:
@@ -919,6 +963,19 @@ class Patient:
             else:
                 # Возвращаем ошибку
                 raise TypeError("The 'phone' field requires the 'int' type!")
+        elif types == self.Types.settings:
+            # Проверка параметра
+            if isinstance(value, dict):
+                # Обновляем поле
+                self.__settings = value
+                # Обновляем БД
+                result = self.__db.execute(f'UPDATE settings SET timezone="{value["timezone"]}", '
+                                           f'surveys={value["surveys"]} WHERE id={self.__id}')
+                connection.commit()
+                return result
+            else:
+                # Возвращаем ошибку
+                raise TypeError("The 'settings' field requires the 'dict' type!")
         elif types == self.Types.lang:
             # Проверка параметра
             if isinstance(value, str):

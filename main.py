@@ -4,13 +4,13 @@
 ======================================
 Разработчик: Савунов Александр
 """
-import datetime
 
 # Библиотеки
 import ai
 import os
 import time
 import telebot
+import datetime
 import threading
 from pympler import muppy
 from random import choice
@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from database import getAllUserList
 from deep_translator import GoogleTranslator
 from support import checkInt, Switch, ram, stringToBool
-from database import Patient, Doctor, getUser, History, Table
+from database import Patient, Doctor, getUser, History, Table, times
 from database import Admin, Operations, Ads, getAllAds, photos, removePremium
 
 # Инициализация
