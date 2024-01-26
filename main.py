@@ -73,55 +73,70 @@ class Menu:
         # Применяем параметры
         if menusList is None:
             menusList = menus
-        self.__menusList = menusList
-        self.__btns: List[dict] = {}
-        self.__columns: int = columns
-        self.__rows: int = rows
-        self.__page: int = 0
-        # Иттераторы
-        rowItter: int = 0
-        colItter: int = 0
-        parsePage: int = 0
-        # Генерируем список
-        for item in btns:
-            # Если нет страниц
-            if 'pages' not in self.__btns:
-                # Вносим страницу
-                self.__btns['pages'] = [{
-                    'line0': []
-                }]
-            # Если допустимое кол-во
-            if colItter <= self.__columns:
-                # Иттерация
-                colItter += 1
-                # Вносим кнопки
-                self.__btns['pages'][parsePage][f'line{rowItter}'].append(item)
-            else:
-                # Если иттерация допустима
-                if rowItter <= self.__rows:
+        # Если параметры указаны неверно
+        if columns - 1 <= 0 or rows - 2 <= 0:
+            # Выбрасываем ошибку
+            raise ValueError("Not enough rows or columns!")
+        else:
+            self.__menusList = menusList
+            self.__btns: List[dict] = {}
+            self.__columns: int = columns - 1
+            self.__rows: int = rows - 2
+            self.__page: int = 0
+            # Иттераторы
+            rowItter: int = 0
+            colItter: int = 0
+            parsePage: int = 0
+            # Генерируем список
+            for item in btns:
+                # Если нет страниц
+                if 'pages' not in self.__btns:
+                    # Вносим страницу
+                    self.__btns['pages'] = [{
+                        'line0': []
+                    }]
+                # Если допустимое кол-во
+                if colItter <= self.__columns:
                     # Иттерация
-                    rowItter += 1
-                    colItter = 0
+                    colItter += 1
+                    # Вносим кнопки
+                    self.__btns['pages'][parsePage][f'line{rowItter}'].append(item)
                 else:
-                    # Иттерация
-                    parsePage += 1
-                    rowItter = 0
-                    colItter = 0
-                    # Проверка условий
-                    if parsePage > 0:
-                        # Вносим регуляторы
-                        self.__btns['pages'][parsePage][f'line{rowItter}'].append(
-                            telebot.types.InlineKeyboardButton('< Назад', callback_data=f'backward|{
-                                len(menusList) + 1}|{parsePage - 2}'),
-                            telebot.types.InlineKeyboardButton('Вперёд >', callback_data=f'forward|{
-                                len(menusList) + 1}|{parsePage}')
-                        )
+                    # Если иттерация допустима
+                    if rowItter <= self.__rows:
+                        # Иттерация
+                        rowItter += 1
+                        colItter = 0
+                        # Создаём новый список
+                        self.__btns['pages'][parsePage][f'line{rowItter}'] = []
                     else:
-                        # Вносим регуляторы
-                        self.__btns['pages'][parsePage][f'line{rowItter}'].append(
-                            telebot.types.InlineKeyboardButton('Вперёд >', callback_data=f'forward|{
-                                len(menusList) + 1}|{parsePage}')
-                        )
+                        # Иттерация
+                        parsePage += 1
+                        rowItter = 0
+                        colItter = 0
+                        # Создаём новый список
+                        self.__btns['pages'].append({
+                            f'line{rowItter}': []
+                        })
+                        # Проверка условий
+                        if parsePage > 0:
+                            # Вносим регуляторы
+                            self.__btns['pages'][parsePage][f'line{rowItter}'].append(
+                                telebot.types.InlineKeyboardButton(
+                                    '< Назад', callback_data=f'backward|{len(menusList) + 1}|{parsePage - 2}'
+                                ))
+                            self.__btns['pages'][parsePage][f'line{rowItter}'].append(
+                                telebot.types.InlineKeyboardButton(
+                                    'Вперёд >', callback_data=f'forward|{len(menusList) + 1}|{parsePage}'
+                                ))
+                        else:
+                            # Вносим регуляторы
+                            self.__btns['pages'][parsePage][f'line{rowItter}'].append(
+                                telebot.types.InlineKeyboardButton('Вперёд >', callback_data=f'forward|{
+                                    len(menusList) + 1}|{parsePage}')
+                            )
+            # Вносим кол-во страниц
+            self.__pages: int = parsePage
 
     # Вывод меню
     def showMenu(self, page: int) -> List[telebot.types.InlineKeyboardButton]:
@@ -131,6 +146,10 @@ class Menu:
         except Exception:
             # Возвращаем ошибку
             raise KeyError("Page is not found!")
+
+    # Получение страниц
+    def getPages(self) -> int:
+        return self.__pages
 
 
 '''
@@ -2889,21 +2908,20 @@ def settings(message: telebot.types.Message, step: int = 0):
                 keyboard = telebot.types.InlineKeyboardMarkup()
                 # Зоны времени
                 tz: List[str] = pytz.all_timezones
+                # Клавиши
+                keyboardBtns: List[telebot.types.InlineKeyboardButton] = []
                 # Иттерация по поясам
-                for i in range(0, len(tz)):
-                    try:
+                for item in tz:
+                    # Вносим клавишу
+                    keyboardBtns.append(
                         # Вносим клавишу
                         keyboard.add(
-                            telebot.types.InlineKeyboardButton(f"🕐 {tz[i]}", callback_data=f"tz|{tz[i]}"),
-                            telebot.types.InlineKeyboardButton(f"🕐 {tz[i + 1]}", callback_data=f"tz|{tz[i + 1]}")
+                            telebot.types.InlineKeyboardButton(f"🕐 {item}", callback_data=f"tz|{item}")
                         )
-                    except IndexError:
-                        # Вносим клавишу
-                        keyboard.add(
-                            telebot.types.InlineKeyboardButton(f"🕐 {tz[i]}", callback_data=f"tz|{tz[i]}")
-                        )
-                # Вносим клавишу отмены
-                keyboard.add(telebot.types.InlineKeyboardButton("❌ Спрятать", callback_data=f"hide"))
+                    )
+                # Меню
+                menu: Menu = Menu(keyboardBtns)
+                print(menu.showMenu(0), menu.showMenu(1))
                 # Отправляем сообщение
                 sendMessage('👇 Выберите часовые пояса из списка ниже', user, reply=keyboard)
             elif 'частота' in message.text.lower():
