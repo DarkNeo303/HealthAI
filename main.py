@@ -933,9 +933,9 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 for table in patient.getTables():
                     # Вносим опросник
                     tableMessage += (f'{table.id + 1}. {table.title}\nДобавлен: '
-                                     f'{datetime.datetime.strptime(table.assigned, os.getenv("DATEFORMAT"))}'
+                                     f'{datetime.datetime.strptime(table.assigned, os.getenv("DATEFORMAT")).date()}'
                                      f'\nИстекает: '
-                                     f'{datetime.datetime.strptime(table.expires, os.getenv("DATEFORMAT"))}')
+                                     f'{datetime.datetime.strptime(table.expires, os.getenv("DATEFORMAT")).date()}')
                     # Если есть вопросы с ответом
                     if table.replyable:
                         # Иттератор
@@ -1773,8 +1773,8 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                                     sendMessage(f'💥 Опросник с ID {message["params"][2]} был удалён '
                                                 f'доктором {message['user'].get()["username"]}!',
                                                 getUser(int(message['params'][1])))
-                                    # Ломаем цикл
-                                    break
+                                    # Возвращаем значение
+                                    return None
                     # Информируем пользователей
                     sendMessage(f'❌ Опросник с ID {message["params"][2]} не был найден!', message['user'])
                     # Ломаем цикл
