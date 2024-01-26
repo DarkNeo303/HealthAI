@@ -1071,6 +1071,9 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                             tableMessage = tableMessage[:-2]
                     # Отправляем опросник
                     sendMessage(tableMessage, doctor, reply=keyboard)
+            else:
+                # Отсылаем сообщение
+                sendMessage('❣ Ответы пациента ещё не были получены', doctor)
             # Ломаем функцию
             break
         elif case(10):
@@ -1125,8 +1128,13 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                     tableMessage += f'{x + 1}. {patient.getHistory().answers[i].answers[x]}\n'
                 # Выносим отступ
                 tableMessage = tableMessage[:-1]
-            # Отсылаем сообщение
-            sendMessage(tableMessage, doctor)
+            # Если есть результаты
+            if patient.getHistory().answers:
+                # Отсылаем сообщение
+                sendMessage(tableMessage, doctor)
+            else:
+                # Отсылаем сообщение
+                sendMessage('❣ Ответы пациента ещё не были получены', doctor)
             # Ломаем функцию
             break
         elif case(11):
@@ -1380,7 +1388,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                         }
                     }
                 # Отсылаем сообщения
-                sendMessage('🤔 Введите вопросы с ответом', doctor, reply=skip)
+                sendMessage('🤔 Введите вопрос со свободным ответом', doctor, reply=skip)
                 # Регистрируем следующий шаг
                 bot.register_next_step_handler(message, healCabinet, doctor, patient, 26)
             # Ломаем функцию
@@ -1404,7 +1412,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Отсылаем сообщения
                 sendMessage('✔ Вопрос успешно внесён!', doctor, reply=skip)
                 # Регистрируем следующий шаг
-                bot.register_next_step_handler(message, healCabinet, doctor, patient, 25)
+                healCabinet(message, doctor, patient, 25)
             # Ломаем функцию
             break
         elif case(27):
@@ -1430,7 +1438,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                     'variants': []
                 })
                 # Отсылаем сообщения
-                sendMessage('✔ Вопрос успешно внесён!\n👇 Введите варианты ответов через запятую',
+                sendMessage('✔ Вопрос успешно внесён!\n👇 Введите варианты ответов через |',
                             doctor, reply=cancel)
                 # Регистрируем следующий шаг
                 bot.register_next_step_handler(message, healCabinet, doctor, patient, 28)
@@ -1453,7 +1461,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 splited: List[str] = []
                 try:
                     # Разбитые слова
-                    splited = message.text.split(',')
+                    splited = message.text.split('|')
                 except Exception:
                     # Меняем попытку
                     tryed = False
@@ -1469,7 +1477,10 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                                                                    - 1]['variants'] = \
                         [x.title().strip() for x in splited]
                     # Отсылаем сообщения
-                    sendMessage('✔ Ответ упешно внесён!', doctor, reply=cancel)
+                    sendMessage('✔ Ответы упешно внесены!\n🤔 Введите вопрос для вопросов с вариантами ответа',
+                                doctor, reply=skip)
+                    # Регистрируем следующий шаг
+                    bot.register_next_step_handler(message, healCabinet, doctor, patient, 27)
             # Ломаем функцию
             break
         elif case(29):
@@ -1488,34 +1499,43 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Создаём таблицу
                 table: Table = Table()
                 # Если полученная строка - число
-                if checkInt(message.text.replace(' ', '').strip()):
+                if checkInt(message.text.replace(',', '').replace(' ', '').strip()):
                     try:
-                        # Варианты
-                        variants: List[Table.Variant] = []
-                        # Наполняем таблицу
-                        table.title = ram[message.from_user.id]['table']['label']
-                        table.replyable = ram[message.from_user.id]['table']['replyable']
-                        table.expires = datetime.datetime.strptime(message.text.replace(' ', '').strip(),
-                                                                   os.getenv('DATEFORMAT'))
-                        table.assigned = datetime.date.today()
-                        # Если есть варианты
-                        if ram[message.from_user.id]['table']['variants']:
-                            # Иттерация по вариантам
-                            for item in ram[message.from_user.id]['table']['variants']:
-                                # Создаём вариант
-                                variant: Table.Variant = Table.Variant()
-                                # Наполняем вариант
-                                variant.question = item['question']
-                                variant.variants = item['variants']
-                                # Вносим вариант
-                                variants.append(variant)
-                        # Добавляем варианты
-                        table.variants = variants
+                        # Получаем дату
+                        date: str = message.text.replace(',', '').replace(' ', '').strip()
+                        # Если дата не в прошлом
+                        if datetime.datetime.strptime(date, os.getenv('DATEFORMAT')).date() > datetime.date.today():
+                            # Варианты
+                            variants: List[Table.Variant] = []
+                            # Наполняем таблицу
+                            table.title = ram[message.from_user.id]['table']['label']
+                            table.replyable = ram[message.from_user.id]['table']['replyable']
+                            table.expires = datetime.datetime.strptime(date, os.getenv('DATEFORMAT')).date()
+                            table.assigned = datetime.date.today()
+                            # Если есть варианты
+                            if ram[message.from_user.id]['table']['variants']:
+                                # Иттерация по вариантам
+                                for item in ram[message.from_user.id]['table']['variants']:
+                                    # Создаём вариант
+                                    variant: Table.Variant = Table.Variant()
+                                    # Наполняем вариант
+                                    variant.question = item['question']
+                                    variant.variants = item['variants']
+                                    # Вносим вариант
+                                    variants.append(variant)
+                            # Добавляем варианты
+                            table.variants = variants
+                        else:
+                            # Отправляем сообщение
+                            sendMessage('❌ Ошибка при получении даты. Дата не может находится в прошлом!'
+                                        '\n👇 Повторите ввод снова', doctor, reply=cancel)
+                            # Регистрируем следующий шаг
+                            bot.register_next_step_handler(message, healCabinet, doctor, patient, 29)
                     except Exception:
                         # Анулируем попытку
                         tryed = False
                         # Отправляем сообщение
-                        sendMessage('❌ Ошибка при получении вариантов. Неверный формат!'
+                        sendMessage('❌ Ошибка при получении даты. Неверный формат!'
                                     '\n👇 Повторите ввод снова', doctor, reply=cancel)
                         # Регистрируем следующий шаг
                         bot.register_next_step_handler(message, healCabinet, doctor, patient, 29)
@@ -1527,35 +1547,43 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                         sendMessage('✔ Дата внесена!\n\n💥 Новая таблица создана!',
                                     doctor, reply=telebot.types.ReplyKeyboardRemove())
                         sendMessage(f'💥 Врач {doctor.get()["username"]} внёс новую таблицу!', patient)
-                elif checkInt(message.text.replace(',', '').replace(' ', '').strip()):
+                elif checkInt(message.text.replace('.', '').replace(' ', '').strip()):
                     try:
-                        # Варианты
-                        variants: List[Table.Variant] = []
-                        # Наполняем таблицу
-                        table.title = ram[message.from_user.id]['table']['label']
-                        table.replyable = ram[message.from_user.id]['table']['replyable']
-                        table.expires = datetime.datetime.strptime(message.text.replace(',', '')
-                                                                   .replace(' ', '').strip(),
-                                                                   os.getenv('DATEFORMAT'))
-                        table.assigned = datetime.date.today()
-                        # Если есть варианты
-                        if ram[message.from_user.id]['table']['variants']:
-                            # Иттерация по вариантам
-                            for item in ram[message.from_user.id]['table']['variants']:
-                                # Создаём вариант
-                                variant: Table.Variant = Table.Variant()
-                                # Наполняем вариант
-                                variant.question = item['question']
-                                variant.variants = item['variants']
-                                # Вносим вариант
-                                variants.append(variant)
-                        # Добавляем варианты
-                        table.variants = variants
+                        # Получаем дату
+                        date: str = message.text.replace('.', '').replace(' ', '').strip()
+                        # Проверка даты
+                        if datetime.datetime.strptime(date, os.getenv('DATEFORMAT')).date() > datetime.date.today():
+                            # Варианты
+                            variants: List[Table.Variant] = []
+                            # Наполняем таблицу
+                            table.title = ram[message.from_user.id]['table']['label']
+                            table.replyable = ram[message.from_user.id]['table']['replyable']
+                            table.expires = datetime.datetime.strptime(date, os.getenv('DATEFORMAT')).date()
+                            table.assigned = datetime.date.today()
+                            # Если есть варианты
+                            if ram[message.from_user.id]['table']['variants']:
+                                # Иттерация по вариантам
+                                for item in ram[message.from_user.id]['table']['variants']:
+                                    # Создаём вариант
+                                    variant: Table.Variant = Table.Variant()
+                                    # Наполняем вариант
+                                    variant.question = item['question']
+                                    variant.variants = item['variants']
+                                    # Вносим вариант
+                                    variants.append(variant)
+                            # Добавляем варианты
+                            table.variants = variants
+                        else:
+                            # Отправляем сообщение
+                            sendMessage('❌ Ошибка при получении даты. Дата не может находится в прошлом!'
+                                        '\n👇 Повторите ввод снова', doctor, reply=cancel)
+                            # Регистрируем следующий шаг
+                            bot.register_next_step_handler(message, healCabinet, doctor, patient, 29)
                     except Exception:
                         # Анулируем попытку
                         tryed = False
                         # Отправляем сообщение
-                        sendMessage('❌ Ошибка при получении вариантов. Неверный формат!'
+                        sendMessage('❌ Ошибка при получении даты. Неверный формат!'
                                     '\n👇 Повторите ввод снова', doctor, reply=cancel)
                         # Регистрируем следующий шаг
                         bot.register_next_step_handler(message, healCabinet, doctor, patient, 29)
@@ -2762,8 +2790,10 @@ def reset(message):
             ram.pop(getUser(message.from_user.id).get()['message'])
         except KeyError:
             pass
+    # Ссылка
+    link: str = os.getenv("ADMINUS").replace("@", 'https://t.me/')
     # Отправляем сообщение, удаляя клавиатуру
-    sendMessage(f'👌 <b>Бот перезапущен!</b>\n\n👇 Сообщите <a href="{os.getenv("ADMIN")}">разработчику</a> '
+    sendMessage(f'👌 <b>Бот перезапущен!</b>\n\n🤔 Сообщите <a href="{link}">разработчику</a> '
                 f'о причине перезапуска', getUser(message.from_user.id), reply=telebot.types.ReplyKeyboardRemove())
 
 
@@ -3360,8 +3390,8 @@ def makeContactFixed(call: telebot.types.Message,
         return False
 
 
-# Опрос премиум пользователей
-def checkPremiumUsers():
+# Показ рекламы и опрос премиум пользователей
+def showAdsAndCheckPremium():
     # Вечный цикл
     while True:
         try:
@@ -3376,14 +3406,6 @@ def checkPremiumUsers():
                         removePremium(user.get()['id'])
         except Exception:
             pass
-        # Задержка
-        time.sleep(int(os.getenv('TIMER')))
-
-
-# Показ рекламы
-def showAds():
-    # Вечный цикл
-    while True:
         try:
             # Если нужно показывать объявления
             if stringToBool(os.getenv('SHOWADS')):
@@ -3456,8 +3478,7 @@ def clearRAM(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequired: in
 
 # Запуск фоновых процессов
 threading.Thread(target=clearRAM, args=(ram,)).start()
-threading.Thread(target=checkPremiumUsers).start()
-threading.Thread(target=showAds).start()
+threading.Thread(target=showAdsAndCheckPremium).start()
 
 # Цикл
 bot.infinity_polling()

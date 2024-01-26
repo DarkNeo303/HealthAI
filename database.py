@@ -851,8 +851,9 @@ class Patient:
         for tab in self.__tables:
             # Вносим таблицу
             parsedTables.append(self.__parseTable(tab))
+        print(json.dumps(parsedTables))
         # Обновляем БД
-        result = self.__db.execute(f'UPDATE patients SET tables={json.dumps(parsedTables)}')
+        result = self.__db.execute(f'UPDATE patients SET tables="{json.dumps(parsedTables)}"')
         connection.commit()
         # Возвращаем результат
         return result
@@ -873,7 +874,7 @@ class Patient:
             # Вносим таблицу
             parsedTables.append(self.__parseTable(table))
         # Обновляем БД
-        result = self.__db.execute(f'UPDATE patients SET tables={json.dumps(parsedTables)}')
+        result = self.__db.execute(f'UPDATE patients SET tables="{json.dumps(parsedTables)}"')
         connection.commit()
         # Возвращаем результат
         return result
