@@ -18,8 +18,8 @@ from typing import Union, List
 from dotenv import load_dotenv
 from database import getAllUserList
 from deep_translator import GoogleTranslator
-from database import Patient, Doctor, getUser, History
 from support import checkInt, Switch, ram, stringToBool
+from database import Patient, Doctor, getUser, History, Table
 from database import Admin, Operations, Ads, getAllAds, photos, removePremium
 
 # Инициализация
@@ -45,6 +45,11 @@ if stringToBool(os.getenv('DEBUG')):
 # Клавиатура отмены
 cancel = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
 cancel.add(telebot.types.KeyboardButton(text="❌ Отменить"))
+
+# Клавиатура пропуска
+skip = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+skip.add(telebot.types.KeyboardButton(text="✔ Пропустить"),
+         telebot.types.KeyboardButton(text="❌ Отменить"))
 
 # Клавиатура согласия
 apply = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -834,8 +839,8 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                     # Иттерация по медекаментам
                     for medic in range(0, len(patient.getHistory().medicines)):
                         # Вносим лекарство
-                        history += f'{medic+1}. {patient.getHistory().medicines[medic].lstrip()[0].upper() + 
-                                                 patient.getHistory().medicines[medic].lstrip()[1:]}\n'
+                        history += f'{medic + 1}. {patient.getHistory().medicines[medic].lstrip()[0].upper() +
+                                                   patient.getHistory().medicines[medic].lstrip()[1:]}\n'
                 # Если есть диагнозы
                 if patient.getHistory().diagnoses:
                     # Иттератор
@@ -1009,6 +1014,10 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             # Ломаем функцию
             break
         elif case(8):
+            # Отсылаем сообщения
+            sendMessage('🤔 Введите название опроса', doctor, reply=cancel)
+            # Регистрируем следующий шаг
+            bot.register_next_step_handler(message, healCabinet, doctor, patient, 25)
             # Ломаем функцию
             break
         elif case(9):
@@ -1072,7 +1081,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Получаем таблицу
                 table = patient.getHistory().answers[i].table
                 # Сообщение
-                tableMessage += f'{i+1}. <b>Информация об опросе:</b>\n\n'
+                tableMessage += f'{i + 1}. <b>Информация об опросе:</b>\n\n'
                 # Вносим опросник
                 tableMessage += f'{table.id + 1}. {table.title}\nДобавлен: {table.assigned.strftime(
                     os.getenv("DATEFORMAT"))}\nИстекает: {table.expires.strftime(os.getenv("DATEFORMAT"))}'
@@ -1113,7 +1122,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Иттерация по ответам
                 for x in range(len(patient.getHistory().answers[i].answers)):
                     # Вносим ответы
-                    tableMessage += f'{x+1}. {patient.getHistory().answers[i].answers[x]}\n'
+                    tableMessage += f'{x + 1}. {patient.getHistory().answers[i].answers[x]}\n'
                 # Выносим отступ
                 tableMessage = tableMessage[:-1]
             # Отсылаем сообщение
@@ -1344,6 +1353,226 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                                 doctor, reply=telebot.types.ReplyKeyboardRemove())
             # Открываем кабинет
             healCabinet(message, doctor, patient, 11)
+            # Ломаем функцию
+            break
+        elif case(25):
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Заполнение отменено', doctor, reply=telebot.types.ReplyKeyboardRemove())
+                # Если ключ есть
+                if (message.from_user.id in ram and ram[message.from_user.id]['type'] == 'system'
+                        and ram[message.from_user.id]['operation'] == Operations.MakeTable):
+                    # Удаляем ключ
+                    ram.pop(message.from_user.id)
+            else:
+                # Если нет ключа
+                if (message.from_user.id not in ram or ram[message.from_user.id]['type'] != 'system'
+                        or ram[message.from_user.id]['operation'] != Operations.MakeTable):
+                    # Вносим ключ
+                    ram[message.from_user.id] = {
+                        'type': 'system',
+                        'operation': Operations.MakeTable,
+                        'table': {
+                            'label': message.text,
+                            'replyable': [],
+                            'variants': []
+                        }
+                    }
+                # Отсылаем сообщения
+                sendMessage('🤔 Введите вопросы с ответом', doctor, reply=skip)
+                # Регистрируем следующий шаг
+                bot.register_next_step_handler(message, healCabinet, doctor, patient, 26)
+            # Ломаем функцию
+            break
+        elif case(26):
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Удаляем ключ
+                ram.pop(message.from_user.id)
+                # Отправляем сообщение
+                sendMessage('❌ Заполнение отменено', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            elif 'пропустить' in message.text.lower():
+                # Отсылаем сообщения
+                sendMessage('✔ Ввод вопросов с ответом завершён!'
+                            '\n🤔 Введите вопрос для вопросов с вариантами ответа', doctor, reply=skip)
+                # Регистрируем следующий шаг
+                bot.register_next_step_handler(message, healCabinet, doctor, patient, 27)
+            else:
+                # Вносим вопрос
+                ram[message.from_user.id]['table']['replyable'].append(message.text)
+                # Отсылаем сообщения
+                sendMessage('✔ Вопрос успешно внесён!', doctor, reply=skip)
+                # Регистрируем следующий шаг
+                bot.register_next_step_handler(message, healCabinet, doctor, patient, 25)
+            # Ломаем функцию
+            break
+        elif case(27):
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Заполнение отменено', doctor, reply=telebot.types.ReplyKeyboardRemove())
+                # Если ключ есть
+                if (message.from_user.id in ram and ram[message.from_user.id]['type'] == 'system'
+                        and ram[message.from_user.id]['operation'] == Operations.MakeTable):
+                    # Удаляем ключ
+                    ram.pop(message.from_user.id)
+            elif 'пропустить' in message.text.lower():
+                # Отсылаем сообщения
+                sendMessage('✔ Ввод вопросов с вариантами ответов завершён!'
+                            '\n🤔 Введите дату истечения в формате день, месяц, год', doctor, reply=cancel)
+                # Регистрируем следующий шаг
+                bot.register_next_step_handler(message, healCabinet, doctor, patient, 29)
+            else:
+                # Вносим вопрос
+                ram[message.from_user.id]['table']['variants'].append({
+                    'question': message.text,
+                    'variants': []
+                })
+                # Отсылаем сообщения
+                sendMessage('✔ Вопрос успешно внесён!\n👇 Введите варианты ответов через запятую',
+                            doctor, reply=cancel)
+                # Регистрируем следующий шаг
+                bot.register_next_step_handler(message, healCabinet, doctor, patient, 28)
+            # Ломаем функцию
+            break
+        elif case(28):
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Заполнение отменено', doctor, reply=telebot.types.ReplyKeyboardRemove())
+                # Если ключ есть
+                if (message.from_user.id in ram and ram[message.from_user.id]['type'] == 'system'
+                        and ram[message.from_user.id]['operation'] == Operations.MakeTable):
+                    # Удаляем ключ
+                    ram.pop(message.from_user.id)
+            else:
+                # Попытка успешна
+                tryed: bool = True
+                # Разбитые слова
+                splited: List[str] = []
+                try:
+                    # Разбитые слова
+                    splited = message.text.split(',')
+                except Exception:
+                    # Меняем попытку
+                    tryed = False
+                    # Отправляем сообщение
+                    sendMessage('❌ Ошибка при получении вариантов. Неверный формат!\n👇 Повторите ввод снова',
+                                doctor, reply=cancel)
+                    # Регистрируем следующий шаг
+                    bot.register_next_step_handler(message, healCabinet, doctor, patient, 28)
+                # Если попытка зарегестрирована
+                if tryed:
+                    # Вносим варианты
+                    ram[message.from_user.id]['table']['variants'][len(ram[message.from_user.id]['table']['variants'])
+                                                                   - 1]['variants'] = \
+                        [x.title().strip() for x in splited]
+                    # Отсылаем сообщения
+                    sendMessage('✔ Ответ упешно внесён!', doctor, reply=cancel)
+            # Ломаем функцию
+            break
+        elif case(29):
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Заполнение отменено', doctor, reply=telebot.types.ReplyKeyboardRemove())
+                # Если ключ есть
+                if (message.from_user.id in ram and ram[message.from_user.id]['type'] == 'system'
+                        and ram[message.from_user.id]['operation'] == Operations.MakeTable):
+                    # Удаляем ключ
+                    ram.pop(message.from_user.id)
+            else:
+                # Попытка успешна
+                tryed: bool = True
+                # Создаём таблицу
+                table: Table = Table()
+                # Если полученная строка - число
+                if checkInt(message.text.replace(' ', '').strip()):
+                    try:
+                        # Варианты
+                        variants: List[Table.Variant] = []
+                        # Наполняем таблицу
+                        table.title = ram[message.from_user.id]['table']['label']
+                        table.replyable = ram[message.from_user.id]['table']['replyable']
+                        table.expires = datetime.datetime.strptime(message.text.replace(' ', '').strip(),
+                                                                   os.getenv('DATEFORMAT'))
+                        table.assigned = datetime.date.today()
+                        # Если есть варианты
+                        if ram[message.from_user.id]['table']['variants']:
+                            # Иттерация по вариантам
+                            for item in ram[message.from_user.id]['table']['variants']:
+                                # Создаём вариант
+                                variant: Table.Variant = Table.Variant()
+                                # Наполняем вариант
+                                variant.question = item['question']
+                                variant.variants = item['variants']
+                                # Вносим вариант
+                                variants.append(variant)
+                        # Добавляем варианты
+                        table.variants = variants
+                    except Exception:
+                        # Анулируем попытку
+                        tryed = False
+                        # Отправляем сообщение
+                        sendMessage('❌ Ошибка при получении вариантов. Неверный формат!'
+                                    '\n👇 Повторите ввод снова', doctor, reply=cancel)
+                        # Регистрируем следующий шаг
+                        bot.register_next_step_handler(message, healCabinet, doctor, patient, 29)
+                    # Если попытка совершена
+                    if tryed:
+                        # Прикрепляем к пациенту
+                        patient.addTable(table)
+                        # Отсылаем сообщения пользователям
+                        sendMessage('✔ Дата внесена!\n\n💥 Новая таблица создана!',
+                                    doctor, reply=telebot.types.ReplyKeyboardRemove())
+                        sendMessage(f'💥 Врач {doctor.get()["username"]} внёс новую таблицу!', patient)
+                elif checkInt(message.text.replace(',', '').replace(' ', '').strip()):
+                    try:
+                        # Варианты
+                        variants: List[Table.Variant] = []
+                        # Наполняем таблицу
+                        table.title = ram[message.from_user.id]['table']['label']
+                        table.replyable = ram[message.from_user.id]['table']['replyable']
+                        table.expires = datetime.datetime.strptime(message.text.replace(',', '')
+                                                                   .replace(' ', '').strip(),
+                                                                   os.getenv('DATEFORMAT'))
+                        table.assigned = datetime.date.today()
+                        # Если есть варианты
+                        if ram[message.from_user.id]['table']['variants']:
+                            # Иттерация по вариантам
+                            for item in ram[message.from_user.id]['table']['variants']:
+                                # Создаём вариант
+                                variant: Table.Variant = Table.Variant()
+                                # Наполняем вариант
+                                variant.question = item['question']
+                                variant.variants = item['variants']
+                                # Вносим вариант
+                                variants.append(variant)
+                        # Добавляем варианты
+                        table.variants = variants
+                    except Exception:
+                        # Анулируем попытку
+                        tryed = False
+                        # Отправляем сообщение
+                        sendMessage('❌ Ошибка при получении вариантов. Неверный формат!'
+                                    '\n👇 Повторите ввод снова', doctor, reply=cancel)
+                        # Регистрируем следующий шаг
+                        bot.register_next_step_handler(message, healCabinet, doctor, patient, 29)
+                    # Если попытка совершена
+                    if tryed:
+                        # Прикрепляем к пациенту
+                        patient.addTable(table)
+                        # Отсылаем сообщения пользователям
+                        sendMessage('✔ Дата внесена!\n\n💥 Новая таблица создана!',
+                                    doctor, reply=telebot.types.ReplyKeyboardRemove())
+                        sendMessage(f'💥 Врач {doctor.get()["username"]} внёс новую таблицу!', patient)
+                else:
+                    # Отправляем сообщение
+                    sendMessage('❌ Ошибка при получении вариантов. Неверный формат!'
+                                '\n👇 Повторите ввод снова', doctor, reply=cancel)
+                    # Регистрируем следующий шаг
+                    bot.register_next_step_handler(message, healCabinet, doctor, patient, 29)
             # Ломаем функцию
             break
         elif case():
@@ -2305,7 +2534,7 @@ def profile(message):
                 # Иттерация по медикаментам
                 for i in range(0, len(history.medicines)):
                     # Формируем сообщение
-                    msg += f'{i+1}. {history.medicines[i].lstrip()[0].upper() + history.medicines[i].lstrip()[1:]}\n'
+                    msg += f'{i + 1}. {history.medicines[i].lstrip()[0].upper() + history.medicines[i].lstrip()[1:]}\n'
             # Отсылаем историю
             sendMessage(msg, message.chat.id, user)
             # Если есть диагнозы

@@ -108,6 +108,7 @@ class Operations(Enum):
     AnonContactFind = 2
     ChangeMe = 3
     Diagnose = 4
+    MakeTable = 5
 
 
 # Тип данных таблицы
