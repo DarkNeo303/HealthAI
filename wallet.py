@@ -9,7 +9,7 @@
 import json
 import hashlib
 from os import getenv
-from typing import List
+from typing import List, Tuple
 from dotenv import load_dotenv
 from support import stringToBool
 from random import randint, choice
@@ -60,7 +60,7 @@ class BillOperations:
         self.__wallet: Account = wallet
 
     # Уникальные ID
-    def createBill(self, label: str, ammount: int, minimum: int = 0, maximum: int = 10000):
+    def createBill(self, label: str, ammount: int, minimum: int = 0, maximum: int = 10000) -> Tuple[str, str]:
         while True:
             # Генерируем ID
             newBill = randint(minimum, maximum)
@@ -78,7 +78,7 @@ class BillOperations:
                     paymentType="SB",
                     sum=ammount,
                     label=key
-                ).redirected_url
+                ).redirected_url, key
 
     # Проверка чека
     def checkBill(self, bill: str) -> bool:
