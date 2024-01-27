@@ -8,6 +8,7 @@
 # Библиотеки
 import json
 import hashlib
+from enum import Enum
 from os import getenv
 from typing import List, Tuple
 from dotenv import load_dotenv
@@ -23,6 +24,16 @@ load_dotenv()
 # Холдер клиента
 client: Client = None
 user: Account = None
+
+# Сессии
+sessions: dict = {}
+
+
+# Типы операций
+class paymentTypes(Enum):
+    premium = 1,
+    setPayment = 2
+
 
 # Открываем слова хэширования
 with open(getenv('WORDS'), 'r') as fi:
@@ -62,12 +73,12 @@ class BillOperations:
     # Уникальные ID
     def createBill(self, label: str, ammount: int, minimum: int = 0, maximum: int = 10000) -> Tuple[str, str]:
         while True:
-            # Генерируем ID
-            newBill = randint(minimum, maximum)
+            # Создаём ключ
+            key: str = hashlib.md5(
+                f'{choice(hashWords)}{randint(minimum, maximum)}{choice(hashWords)}'.encode()
+            ).hexdigest()
             # Если ID не существует
-            if newBill not in self.__billList:
-                # Создаём ключ
-                key: str = hashlib.md5(f'{choice(hashWords)}{newBill}{choice(hashWords)}'.encode()).hexdigest()
+            if key not in self.__billList:
                 # Вносим ключ
                 self.__billList.append(key)
                 # Создаём платёж
@@ -91,7 +102,7 @@ class BillOperations:
                 # Если успех
                 if operation.status == 'success':
                     # Удаляем чек из списка
-                    self.__billList.pop(bill)
+                    self.__billList.remove(bill)
                     # Возвращаем успех
                     return True
         # Возвращаем значение

@@ -15,11 +15,11 @@ import datetime
 import threading
 from pympler import muppy
 from random import choice
-from wallet import operations
 from dotenv import load_dotenv
 from database import getAllUserList
 from typing import Union, List, Tuple
 from deep_translator import GoogleTranslator
+from wallet import operations, sessions, paymentTypes
 from support import checkInt, Switch, ram, stringToBool
 from database import Patient, Doctor, getUser, History, Table, times, menus
 from database import Admin, Operations, Ads, getAllAds, photos, removePremium
@@ -1916,6 +1916,16 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                     # Ломаем цикл
                     break
                 elif case(defaultArgs[9]):
+                    # Создаём ссылку
+                    link, key = operations.createBill('Оплата Premium', int(os.getenv('PREMAMMOUNT')))
+                    # Вносим в память
+                    sessions[key] = {
+                        'user': user,
+                        'payment': paymentTypes.premium
+                    }
+                    # Отсылаем сообщение
+                    sendMessage(f'💸 Оплатите счёт по <a href="{link}">этой ссылке</a>'
+                                f'\n\n😉 Ожидание проверки оплаты займёт до 2-х минут', user)
                     # Ломаем цикл
                     break
                 elif case(defaultArgs[10]):
@@ -4099,6 +4109,31 @@ def minuteProcess(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequire
                         )
                         # Проводим опрос
                         sendSurveyes(message, user)
+            # Иттерация по ключам
+            for key in sessions.keys():
+                # Если операция подтверждена
+                if operations.checkBill(key):
+                    # Получаем пользователя
+                    user: Union[Doctor, Patient] = getUser(sessions[key]['user'].get()['id'])
+                    # Иттерация по операциям
+                    for case in Switch(sessions[key]['payment']):
+                        # Проверка операции
+                        if case(paymentTypes.premium):
+                            # Дата истечения
+                            expires = datetime.date.today() + datetime.timedelta(days=31)
+                            # Выдаём премиум на месяц
+                            user.premiumAdd(expires)
+                            # Отсылаем сообщение
+                            sendMessage(f'🥳 <b>Поздравляем с покупкой премиума на месяц!</b>\n\n'
+                                        f'Истекает: {expires}', user)
+                            # Ломаем иттерацию
+                            break
+                        elif case(paymentTypes.setPayment):
+                            # Ломаем иттерацию
+                            break
+                        elif case():
+                            # Ломаем иттерацию
+                            break
         except Exception:
             pass
         # Задержка
