@@ -1088,12 +1088,53 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             # Ломаем функцию
             break
         elif case(3):
+            # Устанавливаем статус
+            bot.send_chat_action(message.chat.id, 'typing')
+            # Отсылаем сообщение
+            sendMessage(ai.getResponse(f'''
+                Составь прогноз заболевания пациента на основе истории болезни и опросов пациента. 
+                Помни, что от тебя ожидается врачебное предположение о течении и исходе заболевания в отношении жизни, 
+                здоровья и трудоспособности. Основной вид прогнозирования основывается на диагнозе, статистических 
+                данных о конкретной болезни, знании закономерностей развития патологических процессов, оценке 
+                общего состояния больного, динамике клинических показателей.
+                Ты должен оставить в ответе только диагноз или несколько диагнозов, если 
+                у тебя есть несколько предложений на этот счёт и вернуть их без лишних слов 
+                и предисловий. Отвечая на мой вопрос, помни, что ты общаешься с таким же врачём, 
+                как и ты. Ни в коем случае не указывай названия ролей и никогда не отыгрывай роль пациента. 
+                Помни, что ты обязательно должен аргументировать свой ответ, как настоящий, грамотный специалист: 
+                {getPromptForAI(Patient(6949644238))}
+            ''').rstrip('\n'), doctor)
             # Ломаем функцию
             break
         elif case(4):
+            # Устанавливаем статус
+            bot.send_chat_action(message.chat.id, 'typing')
+            # Отсылаем сообщение
+            sendMessage(ai.getResponse(f'''
+                Поставь диагноз пациенту на основе истории болезни и опросов пациента. 
+                Ты должен оставить в ответе только диагноз или несколько диагнозов, если 
+                у тебя есть несколько предложений на этот счёт и вернуть их без лишних слов 
+                и предисловий. Отвечая на мой вопрос, помни, что ты общаешься с таким же врачём, 
+                как и ты. Ни в коем случае не указывай названия ролей и никогда не отыгрывай роль пациента. 
+                Помни, что ты обязательно должен аргументировать свой ответ, как настоящий, грамотный специалист: 
+                {getPromptForAI(Patient(6949644238))}
+            ''').rstrip('\n'), doctor)
             # Ломаем функцию
             break
         elif case(5):
+            # Устанавливаем статус
+            bot.send_chat_action(message.chat.id, 'typing')
+            # Отсылаем сообщение
+            sendMessage(ai.getResponse(f'''
+                Составь план лечения на основе истории болезни и опросов пациента с указанием
+                рекомендуемых медикаментов в рекомендуемых дозировках. 
+                Ты должен оставить в ответе только диагноз или несколько диагнозов, если 
+                у тебя есть несколько предложений на этот счёт и вернуть их без лишних слов 
+                и предисловий. Отвечая на мой вопрос, помни, что ты общаешься с таким же врачём, 
+                как и ты. Ни в коем случае не указывай названия ролей и никогда не отыгрывай роль пациента. 
+                Помни, что ты обязательно должен аргументировать свой ответ, как настоящий, грамотный специалист: 
+                {getPromptForAI(Patient(6949644238))}
+            ''').rstrip('\n'), doctor)
             # Ломаем функцию
             break
         elif case(6):
@@ -1203,11 +1244,11 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Получаем таблицу
                 table = patient.getHistory().answers[i].table
                 # Сообщение
-                tableMessage += f'{i + 1}. <b>Информация об опросе:</b>\n\n'
+                tableMessage += f'<b>Информация об опросе:</b>\n\n'
                 # Вносим опросник
                 tableMessage += (f'{table.id + 1}. {table.title}\nДобавлен: '
                                  f'{datetime.datetime.strptime(table.assigned, os.getenv("DATEFORMAT")).date()}'
-                                 f'\nИстекает: {datetime.datetime.strptime(table.expires, 
+                                 f'\nИстекает: {datetime.datetime.strptime(table.expires,
                                                                            os.getenv("DATEFORMAT")).date()}')
                 # Если есть вопросы с ответом
                 if table.replyable:
@@ -3834,6 +3875,125 @@ def makeContactFixed(call: telebot.types.Message,
         makeContact(call, fromUser, toUser)
         # Возвращаем результат
         return False
+
+
+# Получение промта для ИИ
+def getPromptForAI(patient: Patient) -> str:
+    # Сообщения
+    result: str = f'Полученные данные:\n\n'
+    history: str = 'История болезни:\n\n'
+    tableMessage: str = 'Полученные ответы пациента:\n\n'
+    # Иттерация по ответам
+    for i in range(len(patient.getHistory().answers)):
+        # Получаем таблицу
+        table = patient.getHistory().answers[i].table
+        # Сообщение
+        tableMessage += f'Информация об опросе:\n\n'
+        # Вносим опросник
+        tableMessage += (f'{table.id + 1}. {table.title}\nДобавлен: '
+                         f'{datetime.datetime.strptime(table.assigned, os.getenv("DATEFORMAT")).date()}'
+                         f'\nИстекает: {datetime.datetime.strptime(table.expires,
+                                                                   os.getenv("DATEFORMAT")).date()}')
+        # Если есть вопросы с ответом
+        if table.replyable:
+            # Иттератор
+            questionCount: int = 0
+            # Вносим заголовок
+            tableMessage += '\n\n<b>Вопросы с ответом</b>\n'
+            # Иттерация по вопросам
+            for replyable in table.replyable:
+                # Прибавляем иттератор
+                questionCount += 1
+                # Вносим вопросы
+                tableMessage += f'{questionCount}. {replyable}\n'
+            # Удаляем последний символ
+            tableMessage = tableMessage[:-1]
+        # Если есть варианты с ответами
+        if table.variants:
+            # Иттератор
+            questionCount: int = 0
+            # Вносим заголовок
+            tableMessage += '\n\nВопросы с вариантами ответов\n'
+            # Иттерация по вариантам
+            for variant in table.variants:
+                # Прибавляем иттератор
+                questionCount += 1
+                # Вносим вопросы
+                tableMessage += f'{questionCount}. {variant.question}\nВарианты ответов: '
+                # Иттерация по вариантам ответов
+                for v in variant.variants:
+                    # Вносим вопросы
+                    tableMessage += f'{v}, '
+                # Удаляем последний символ
+                tableMessage = tableMessage[:-2]
+        # Вносим заголовок
+        tableMessage += '\n\nОтветы:\n'
+        # Иттерация по ответам
+        for x in range(len(patient.getHistory().answers[i].answers)):
+            # Вносим ответы
+            tableMessage += f'{x + 1}. {patient.getHistory().answers[i].answers[x]}\n'
+        # Выносим отступ
+        tableMessage = tableMessage[:-1]
+    # Если есть результаты
+    if patient.getHistory().answers:
+        # Вносим ответы пациента
+        result += tableMessage
+        # Определяем пол
+        if bool(patient.get()['sex']):
+            # Добавляем пол
+            history += f'Пол: Мужской\n'
+        else:
+            # Добавляем пол
+            history += f'Пол: Женский\n'
+        # Если есть история болезни
+        if patient.getHistory() is not None:
+            # Если есть прогнозы
+            if patient.getHistory().predict != 'undefined':
+                # Добавляем прогноз
+                history += f'Прогноз: {patient.getHistory().predict}\n'
+            # Если есть анализы
+            if patient.getHistory().analyzes != 'undefined':
+                # Добавляем анализы
+                history += f'Анализы: {patient.getHistory().analyzes}\n'
+            # Если есть жалобы
+            if patient.getHistory().complaints != 'undefined':
+                # Добавляем жалобы
+                history += f'Жалобы: {patient.getHistory().complaints}\n'
+            # Если есть описание
+            if patient.getHistory().description != 'undefined':
+                # Добавляем жалобы
+                history += f'История: {patient.getHistory().description}\n'
+            # Если есть список назначений
+            if patient.getHistory().medicines:
+                # Добавляем запись
+                history += f'\nМедикаменты:\n'
+                # Иттерация по медекаментам
+                for medic in range(0, len(patient.getHistory().medicines)):
+                    # Вносим лекарство
+                    history += f'{medic + 1}. {patient.getHistory().medicines[medic].lstrip()[0].upper() +
+                                               patient.getHistory().medicines[medic].lstrip()[1:]}\n'
+            # Если есть диагнозы
+            if patient.getHistory().diagnoses:
+                # Иттератор
+                itterator: int = 0
+                # Добавляем запись
+                history += f'\nДиагнозы:\n'
+                # Иттерация по диагнозам
+                for diagnosis in patient.getHistory().diagnoses:
+                    # Прибавляем иттератор
+                    itterator += 1
+                    # Если не натуральный
+                    if diagnosis.neuralnetwork:
+                        # Вносим диагноз
+                        history += (f'{itterator}. {diagnosis.title}\n{diagnosis.description}\n'
+                                    f'Диагноз выставлен нейросетью!\n')
+                    else:
+                        # Вносим диагноз
+                        history += f'{itterator}. {diagnosis.title}\n{diagnosis.description}'
+                # Вносим отступ
+                history += '\n'
+    # Возвращаем результат
+    return history + tableMessage
 
 
 # Показ рекламы и опрос премиум пользователей
