@@ -6,11 +6,15 @@
 """
 
 # Библиотеки
+import json
+import hashlib
 from os import getenv
+from typing import List
 from dotenv import load_dotenv
 from support import stringToBool
+from random import randint, choice
 from yoomoney import Quickpay, Account
-from yoomoney import Authorize, Client
+from yoomoney import Authorize, Client, History
 
 # Инициализация
 initializated: bool = False
@@ -19,6 +23,11 @@ load_dotenv()
 # Холдер клиента
 client: Client = None
 user: Account = None
+
+# Открываем слова хэширования
+with open(getenv('WORDS'), 'r') as fi:
+    # Запоминаем слова
+    hashWords: List[str] = json.loads(fi.read())
 
 # Если есть ключ авторизации
 if getenv('ACCESSTOKEN') is not None:
@@ -32,22 +41,87 @@ if getenv('ACCESSTOKEN') is not None:
         # Не нициализировано
         initializated = False
 
+# Если режим отладки
+if stringToBool(getenv('DEBUG')) and initializated:
+    # Выводим сообщение
+    print("Wallet Service is initializated successfully!")
+elif stringToBool(getenv('DEBUG')) and not initializated:
+    # Выводим сообщение
+    print("Error on initializate wallet services!")
+
+
+# Класс чека
+class BillOperations:
+    # Инициализация
+    def __init__(self, walletClient: Client = client, wallet: Account = user):
+        # Применяем параметры
+        self.__billList: List[str] = []
+        self.__client: Client = walletClient
+        self.__wallet: Account = wallet
+
+    # Уникальные ID
+    def createBill(self, label: str, ammount: int, minimum: int = 0, maximum: int = 10000):
+        while True:
+            # Генерируем ID
+            newBill = randint(minimum, maximum)
+            # Если ID не существует
+            if newBill not in self.__billList:
+                # Создаём ключ
+                key: str = hashlib.md5(f'{choice(hashWords)}{newBill}{choice(hashWords)}'.encode()).hexdigest()
+                # Вносим ключ
+                self.__billList.append(key)
+                # Создаём платёж
+                return Quickpay(
+                    receiver=self.__wallet.account,
+                    quickpay_form="shop",
+                    targets=label,
+                    paymentType="SB",
+                    sum=ammount,
+                    label=key
+                ).redirected_url
+
+    # Проверка чека
+    def checkBill(self, bill: str) -> bool:
+        # Если в списке
+        if bill in self.__billList:
+            # Получаем историю платежей
+            history: History = self.__client.operation_history(label=bill)
+            # Иттерация по операциям
+            for operation in history.operations:
+                # Если успех
+                if operation.status == 'success':
+                    # Удаляем чек из списка
+                    self.__billList.pop(bill)
+                    # Возвращаем успех
+                    return True
+        # Возвращаем значение
+        return False
+
+    # Получение чеков
+    def getBills(self) -> List[str]:
+        return self.__billList
+
+
+# Холдер операций
+operations: BillOperations = BillOperations()
+
 # Если требуется авторизация или не инициализировано
 if stringToBool(getenv('NEEDAUTH')) or not initializated:
     # Выводим сообщение
     print('Authorizate is required!')
     # Авторизация
     Authorize(
-          client_id=getenv('YOOMONEY'),
-          redirect_uri=getenv('REDIRECT'),
-          scope=["account-info",
-                 "operation-history",
-                 "operation-details",
-                 "incoming-transfers",
-                 "payment-p2p",
-                 "payment-shop",
-                 ]
-          )
+        client_id=getenv('YOOMONEY'),
+        redirect_uri=getenv('REDIRECT'),
+        scope=[
+            "account-info",
+            "operation-history",
+            "operation-details",
+            "incoming-transfers",
+            "payment-p2p",
+            "payment-shop",
+        ]
+    )
 elif initializated:
     # Если режим отладки
     if stringToBool(getenv('DEBUG')):
