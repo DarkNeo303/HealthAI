@@ -1139,6 +1139,10 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             # Ломаем функцию
             break
         elif case(6):
+            # Отсылаем сообщение
+            sendMessage('🤔 Введите сумму в рублях до 10.000', doctor, reply=cancel)
+            # Регистрируем следующий шаг
+            bot.register_next_step_handler(message, healCabinet, doctor, patient, 30)
             # Ломаем функцию
             break
         elif case(7):
@@ -1764,6 +1768,48 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                                 '\n👇 Повторите ввод снова', doctor, reply=cancel)
                     # Регистрируем следующий шаг
                     bot.register_next_step_handler(message, healCabinet, doctor, patient, 29)
+            # Ломаем функцию
+            break
+        elif case(30):
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отсылаем ошибку
+                sendMessage('❌ Назначение счёта отменено!', doctor, reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                # Если сообщение - число
+                if checkInt(message.text):
+                    # Если число допустимо
+                    if 0 < int(message.text) <= 10000:
+                        # Создаём ссылку
+                        link, key = operations.createBill(f'Счёт от {doctor.get()["username"]}', int(message.text))
+                        # Вносим в память
+                        sessions[key] = {
+                            'user': doctor,
+                            'payment': paymentTypes.setPayment,
+                            'ammount': int(message.text) - (int(message.text) / 100 * int(os.getenv('COMISSION'))),
+                            'patient': patient
+                        }
+                        # Отсылаем сообщение
+                        sendMessage(f'💸 Врач {doctor.get()["username"]} выставил счёт в размере '
+                                    f'{message.text}₽'
+                                    f'\nОплатите счёт по <a href="{link}">этой ссылке</a>'
+                                    f'\n\n😉 Ожидание проверки оплаты займёт до 2-х минут', patient)
+                        # Отсылаем сообщение
+                        sendMessage(f'💸 Вы выставили счёт в размере {message.text}₽ пациенту '
+                                    f'{patient.get()["username"]}\n'
+                                    f'Комиссия от полученной суммы составит {os.getenv('COMISSION')}₽', doctor,
+                                    reply=telebot.types.ReplyKeyboardRemove())
+                    else:
+                        # Отсылаем ошибку
+                        sendMessage('☝ Сумма не может быть меньше нуля или превышать 10.000 рублей'
+                                    '\n\n👇Повторите ввод суммы', doctor, reply=cancel)
+                        # Регистрируем следующий шаг
+                        bot.register_next_step_handler(message, healCabinet, doctor, patient, step)
+                else:
+                    # Отсылаем ошибку
+                    sendMessage('☝ Вы должны ввести число!\n\n👇Повторите ввод суммы', doctor, reply=cancel)
+                    # Регистрируем следующий шаг
+                    bot.register_next_step_handler(message, healCabinet, doctor, patient, step)
             # Ломаем функцию
             break
         elif case():
@@ -4129,6 +4175,17 @@ def minuteProcess(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequire
                             # Ломаем иттерацию
                             break
                         elif case(paymentTypes.setPayment):
+                            # Получаем параметры
+                            patient: Patient = getUser(sessions[key]['patient'].get()['id'])
+                            ammount: int = sessions[key]['ammount']
+                            # Переводим деньги на счёт врача
+                            operations.sendMoney(user.getSettings()['wallet'], ammount, f"От пациента "
+                                                                                        f"{patient.get()['username']}"
+                                                                                        f" - HealthAI")
+                            # Информируем пользоветелей
+                            sendMessage(f'🥳 <b>Пациент {patient.get()["username"]} оплатил счёт</b>\n\n'
+                                        f'В течении часа Вам поступит {ammount}', user)
+                            sendMessage(f'✔ Чек от врача {user.get()["username"]} успешно оплачен!', patient)
                             # Ломаем иттерацию
                             break
                         elif case():

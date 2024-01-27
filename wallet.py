@@ -8,6 +8,9 @@
 # Библиотеки
 import json
 import hashlib
+import os
+
+import requests
 from enum import Enum
 from os import getenv
 from typing import List, Tuple
@@ -90,6 +93,17 @@ class BillOperations:
                     sum=ammount,
                     label=key
                 ).redirected_url, key
+
+    # Перевод денег
+    @staticmethod
+    def sendMoney(to: int, ammount: int, comment: str = "") -> bool:
+        # Переводим средства, возвращая результат
+        return requests.post(getenv('TRANSFER'), data={
+            'access_token': getenv('ACCESSTOKEN'),
+            'to': to,
+            'amount': ammount,
+            'comment': comment
+        }).status_code == 200
 
     # Проверка чека
     def checkBill(self, bill: str) -> bool:
