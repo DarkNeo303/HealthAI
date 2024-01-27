@@ -106,7 +106,7 @@ class Menu:
         # Вносим клавиши
         keyboard.add(
             telebot.types.InlineKeyboardButton('<- Назад', callback_data=f'bk|{self.__id}'),
-            telebot.types.InlineKeyboardButton(f'{page+1}/{len(self.__pages)}', callback_data='hide'),
+            telebot.types.InlineKeyboardButton(f'{page + 1}/{len(self.__pages)}', callback_data='hide'),
             telebot.types.InlineKeyboardButton('Вперёд ->', callback_data=f'fd|{self.__id}')
         )
         # Возвращаем результат
@@ -1205,8 +1205,10 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Сообщение
                 tableMessage += f'{i + 1}. <b>Информация об опросе:</b>\n\n'
                 # Вносим опросник
-                tableMessage += f'{table.id + 1}. {table.title}\nДобавлен: {table.assigned.strftime(
-                    os.getenv("DATEFORMAT"))}\nИстекает: {table.expires.strftime(os.getenv("DATEFORMAT"))}'
+                tableMessage += (f'{table.id + 1}. {table.title}\nДобавлен: '
+                                 f'{datetime.datetime.strptime(table.assigned, os.getenv("DATEFORMAT")).date()}'
+                                 f'\nИстекает: {datetime.datetime.strptime(table.expires, 
+                                                                           os.getenv("DATEFORMAT")).date()}')
                 # Если есть вопросы с ответом
                 if table.replyable:
                     # Иттератор
@@ -1240,7 +1242,7 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                         # Удаляем последний символ
                         tableMessage = tableMessage[:-2]
                 # Вносим заголовок
-                tableMessage += '\n<b>Ответы:<b>\n'
+                tableMessage += '\n\n<b>Ответы:</b>\n'
                 # Иттерация по ответам
                 for x in range(len(patient.getHistory().answers[i].answers)):
                     # Вносим ответы
@@ -2989,8 +2991,6 @@ def settings(message: telebot.types.Message, step: int = 0):
             if 'пояса' in message.text.lower():
                 # Отправляем сообщение
                 sendMessage('👌 Получаем часовые пояса...', user, reply=telebot.types.ReplyKeyboardRemove())
-                # Клавиатура
-                keyboard = telebot.types.InlineKeyboardMarkup()
                 # Зоны времени
                 tz: List[str] = pytz.all_timezones
                 # Клавиши
@@ -3504,6 +3504,160 @@ def getMessage(message: telebot.types.Message):
 '''
 
 
+# Опрос
+def sendSurveyes(message: telebot.types.Message,
+                 patient: Patient, passed: int = 0, step: int = 0, question: int = 0, answers: List[str] = None):
+    # Получаем опросы, ответы и историю
+    tables: List[Table] = patient.getTables()
+    history: History = patient.getHistory()
+    # Если есть таблицы
+    if tables:
+        # Иттерация по состояниям
+        for case in Switch(step):
+            try:
+                # Выбираем таблицу
+                table: Table = tables[passed]
+                # Проверка состояния
+                if case(0):
+                    # Если есть вопросы со свободным ответом
+                    if table.replyable:
+                        # Отправляем сообщение
+                        sendMessage(f'📊 <b>Пройдите ежедневный опрос: {table.title}!</b>'
+                                    f'\n\n{question + 1}. {table.replyable[question]}', patient,
+                                    reply=telebot.types.ReplyKeyboardRemove())
+                        # Регистрируем следующий шаг
+                        bot.register_next_step_handler(message, sendSurveyes, passed, 1, question + 1)
+                    elif table.variants:
+                        # Вносим варианты
+                        keyboard: telebot.types.ReplyKeyboardMarkup = telebot.types.ReplyKeyboardMarkup()
+                        # Иттерация по вариантам
+                        for variant in table.variants[question].variants:
+                            # Вносим вариант
+                            keyboard.add(telebot.types.KeyboardButton(variant))
+                        # Отправляем сообщение
+                        sendMessage(f'📊 <b>Пройдите ежедневный опрос: {table.title}!</b>'
+                                    f'\n\n{question + 1}. {table.variants[question].question}', patient,
+                                    reply=keyboard)
+                        # Регистрируем следующий шаг
+                        bot.register_next_step_handler(message, sendSurveyes, patient, passed, 2, question + 1)
+                    # Ломаем иттерацию
+                    break
+                elif case(1):
+                    # Если не пустой список
+                    if answers is not None:
+                        # Вносим ответ
+                        answers.append(message.text)
+                    else:
+                        # Вносим ответ
+                        answers = [message.text]
+                    # Если вопрос допустим
+                    if question < len(table.replyable):
+                        # Отвечаем на сообщение
+                        sendMessage(f'✔ Ответ записан!\n\n{question + 1}. {table.replyable[question]}',
+                                    patient, reply=telebot.types.ReplyKeyboardRemove())
+                        # Регистрируем следующий шаг
+                        bot.register_next_step_handler(message, sendSurveyes, patient,passed, 1, question + 1,
+                                                       answers)
+                    else:
+                        # Обнуляем вопросы
+                        question = 0
+                        # Если вопрос допустим
+                        if question < len(table.variants):
+                            # Вносим варианты
+                            keyboard: telebot.types.ReplyKeyboardMarkup = telebot.types.ReplyKeyboardMarkup()
+                            # Иттерация по вариантам
+                            for variant in table.variants[question].variants:
+                                # Вносим вариант
+                                keyboard.add(telebot.types.KeyboardButton(variant))
+                            # Отвечаем на сообщение
+                            sendMessage(f'✔ Ответ записан!\n\n{question + 1}. '
+                                        f'{table.variants[question].question}', patient, reply=keyboard)
+                            # Регистрируем следующий шаг
+                            bot.register_next_step_handler(message, sendSurveyes, patient, passed, 2,
+                                                           question + 1, answers)
+                        else:
+                            # Создаём ответ
+                            answer: History.TableAnswers = History.TableAnswers()
+                            # Наполняем ответ
+                            answer.table = table
+                            answer.answers = answers
+                            # Вносим в историю
+                            history.answers.append(answer)
+                            # Обновляем историю
+                            patient.updateHistory(history)
+                            # Если иттерация допустима
+                            if passed + 1 < len(tables):
+                                # Перенос на новую таблицу
+                                passed += 1
+                                # Отвечаем сообщением
+                                sendMessage(f'✔ Опрос {table.title} пройден!', patient,
+                                            reply=telebot.types.ReplyKeyboardRemove())
+                                # Создаём новый опрос
+                                sendSurveyes(message, patient, passed)
+                            else:
+                                # Отвечаем сообщением
+                                sendMessage(f'✔ Опрос {table.title} пройден!'
+                                            f'\n\n👌 Вы прошли все опросы в списке!', patient,
+                                            reply=telebot.types.ReplyKeyboardRemove())
+                    # Ломаем иттерацию
+                    break
+                elif case(2):
+                    # Если не пустой список
+                    if answers is not None:
+                        # Вносим ответ
+                        answers.append(message.text)
+                    else:
+                        # Вносим ответ
+                        answers = [message.text]
+                    # Если вопрос допустим
+                    if question < len(table.variants):
+                        # Вносим варианты
+                        keyboard: telebot.types.ReplyKeyboardMarkup = telebot.types.ReplyKeyboardMarkup()
+                        # Иттерация по вариантам
+                        for variant in table.variants[question].variants:
+                            # Вносим вариант
+                            keyboard.add(telebot.types.KeyboardButton(variant))
+                        # Отвечаем на сообщение
+                        sendMessage(f'✔ Ответ записан!\n\n{question + 1}. '
+                                    f'{table.variants[question].question}', patient, reply=keyboard)
+                        # Регистрируем следующий шаг
+                        bot.register_next_step_handler(message, sendSurveyes, patient, passed, 2, question + 1,
+                                                       answers)
+                    else:
+                        # Создаём ответ
+                        answer: History.TableAnswers = History.TableAnswers()
+                        # Наполняем ответ
+                        answer.table = table
+                        answer.answers = answers
+                        # Вносим в историю
+                        history.answers.append(answer)
+                        # Обновляем историю
+                        patient.updateHistory(history)
+                        # Если иттерация допустима
+                        if passed + 1 < len(tables):
+                            # Перенос на новую таблицу
+                            passed += 1
+                            # Отвечаем сообщением
+                            sendMessage(f'✔ Опрос {table.title} пройден!', patient,
+                                        reply=telebot.types.ReplyKeyboardRemove())
+                            # Создаём новый опрос
+                            sendSurveyes(message, patient, passed)
+                        else:
+                            # Отвечаем сообщением
+                            sendMessage(f'✔ Опрос {table.title} пройден!'
+                                        f'\n\n👌 Вы прошли все опросы в списке!', patient,
+                                        reply=telebot.types.ReplyKeyboardRemove())
+                    # Ломаем иттерацию
+                    break
+                elif case():
+                    # Ломаем иттерацию
+                    break
+            except IndexError:
+                pass
+    # Возвращаем результат
+    return None
+
+
 # Создание чата
 def makeContact(call: telebot.types.Message, message: dict, step: int = 0) -> bool:
     # Проверка состояния
@@ -3726,9 +3880,9 @@ def showAdsAndCheckPremium():
 def minuteProcess(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequired: int = 5):
     # Вечный цикл
     while True:
-        # Разрешение
-        doClear: bool = True
         try:
+            # Разрешение
+            doClear: bool = True
             # Проверка регистрирующихся
             for key in ramDict.keys():
                 try:
@@ -3752,6 +3906,23 @@ def minuteProcess(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequire
                     print(f"Current RAM: {ram} was cleaned!\nCurrent cooldown: {os.getenv('TIMER')}")
                 # Очищаем словарь
                 ramDict.clear()
+            # Иттерация по пользователям
+            for user in getAllUserList():
+                # Если пользователь - пациент
+                if isinstance(user, Patient):
+                    # Время у пользователя
+                    hour: int = (
+                        pytz.timezone(user.getSettings()['timezone']).localize(datetime.datetime.now()).time().hour
+                    )
+                    # Если время совпало и опросы существуют
+                    if hour in times and user.getTables():
+                        # Сообщение
+                        message: str = sendMessage(
+                            '👋 Привет, это я!\n\nНастало время пройти опросы 😉',
+                            user
+                        )
+                        # Проводим опрос
+                        sendSurveyes(message, user)
         except Exception:
             pass
         # Задержка

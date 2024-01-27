@@ -665,7 +665,7 @@ class Patient:
                     diagnoses.append({"title": diagnosis.title, "description": diagnosis.description,
                                       "neuralnetwork": diagnosis.neuralnetwork})
             # Если есть диагнозы
-            if answers is not None and answers:
+            if data.answers is not None and data.answers:
                 # Получаем ответы
                 for answer in data.answers:
                     # Вносим ответы
@@ -692,8 +692,8 @@ class Patient:
             result: dict = {
                 "id": data.id,
                 "title": data.title,
-                "expires": data.expires.strftime(os.getenv('DATEFORMAT')),
-                "assigned": data.assigned.strftime(os.getenv('DATEFORMAT')),
+                "expires": data.expires,
+                "assigned": data.assigned,
                 "replyable": data.replyable,
             }
             # Иттерация по вариантам
