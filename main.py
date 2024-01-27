@@ -3556,7 +3556,7 @@ def sendSurveyes(message: telebot.types.Message,
                         sendMessage(f'✔ Ответ записан!\n\n{question + 1}. {table.replyable[question]}',
                                     patient, reply=telebot.types.ReplyKeyboardRemove())
                         # Регистрируем следующий шаг
-                        bot.register_next_step_handler(message, sendSurveyes, patient,passed, 1, question + 1,
+                        bot.register_next_step_handler(message, sendSurveyes, patient, passed, 1, question + 1,
                                                        answers)
                     else:
                         # Обнуляем вопросы
