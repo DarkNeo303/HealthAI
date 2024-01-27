@@ -1776,40 +1776,48 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
                 # Отсылаем ошибку
                 sendMessage('❌ Назначение счёта отменено!', doctor, reply=telebot.types.ReplyKeyboardRemove())
             else:
-                # Если сообщение - число
-                if checkInt(message.text):
-                    # Если число допустимо
-                    if 0 < int(message.text) <= 10000:
-                        # Создаём ссылку
-                        link, key = operations.createBill(f'Счёт от {doctor.get()["username"]}', int(message.text))
-                        # Вносим в память
-                        sessions[key] = {
-                            'user': doctor,
-                            'payment': paymentTypes.setPayment,
-                            'ammount': int(message.text) - (int(message.text) / 100 * int(os.getenv('COMISSION'))),
-                            'patient': patient
-                        }
-                        # Отсылаем сообщение
-                        sendMessage(f'💸 Врач {doctor.get()["username"]} выставил счёт в размере '
-                                    f'{message.text}₽'
-                                    f'\nОплатите счёт по <a href="{link}">этой ссылке</a>'
-                                    f'\n\n😉 Ожидание проверки оплаты займёт до 2-х минут', patient)
-                        # Отсылаем сообщение
-                        sendMessage(f'💸 Вы выставили счёт в размере {message.text}₽ пациенту '
-                                    f'{patient.get()["username"]}\n'
-                                    f'Комиссия от полученной суммы составит {os.getenv('COMISSION')}₽', doctor,
-                                    reply=telebot.types.ReplyKeyboardRemove())
+                # Если есть кошелёк
+                if doctor.getSettings()['wallet']:
+                    # Если сообщение - число
+                    if checkInt(message.text):
+                        # Если число допустимо
+                        if 0 < int(message.text) <= 10000:
+                            # Создаём ссылку
+                            link, key = operations.createBill(f'Счёт от {doctor.get()["username"]}',
+                                                              int(message.text))
+                            # Вносим в память
+                            sessions[key] = {
+                                'user': doctor,
+                                'payment': paymentTypes.setPayment,
+                                'ammount': int(message.text) - (int(message.text) / 100 * int(os.getenv('COMISSION'))),
+                                'patient': patient
+                            }
+                            # Отсылаем сообщение
+                            sendMessage(f'💸 Врач {doctor.get()["username"]} выставил счёт в размере '
+                                        f'{message.text}₽'
+                                        f'\nОплатите счёт по <a href="{link}">этой ссылке</a>'
+                                        f'\n\n😉 Ожидание проверки оплаты займёт до 2-х минут', patient)
+                            # Отсылаем сообщение
+                            sendMessage(f'💸 Вы выставили счёт в размере {message.text}₽ пациенту '
+                                        f'{patient.get()["username"]}\n'
+                                        f'Комиссия от полученной суммы составит {os.getenv('COMISSION')}₽', doctor,
+                                        reply=telebot.types.ReplyKeyboardRemove())
+                        else:
+                            # Отсылаем ошибку
+                            sendMessage('☝ Сумма не может быть меньше нуля или превышать 10.000 рублей'
+                                        '\n\n👇Повторите ввод суммы', doctor, reply=cancel)
+                            # Регистрируем следующий шаг
+                            bot.register_next_step_handler(message, healCabinet, doctor, patient, step)
                     else:
                         # Отсылаем ошибку
-                        sendMessage('☝ Сумма не может быть меньше нуля или превышать 10.000 рублей'
-                                    '\n\n👇Повторите ввод суммы', doctor, reply=cancel)
+                        sendMessage('☝ Вы должны ввести число!\n\n👇Повторите ввод суммы', doctor,
+                                    reply=cancel)
                         # Регистрируем следующий шаг
                         bot.register_next_step_handler(message, healCabinet, doctor, patient, step)
                 else:
-                    # Отсылаем ошибку
-                    sendMessage('☝ Вы должны ввести число!\n\n👇Повторите ввод суммы', doctor, reply=cancel)
-                    # Регистрируем следующий шаг
-                    bot.register_next_step_handler(message, healCabinet, doctor, patient, step)
+                    # Отсылаем сообщение
+                    sendMessage('☝ Вы должны прикрепить кошелёк ЮMoney через команду /settings', doctor,
+                                reply=telebot.types.ReplyKeyboardRemove())
             # Ломаем функцию
             break
         elif case():
@@ -3076,6 +3084,7 @@ def settings(message: telebot.types.Message, step: int = 0):
             keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
             keyboard.add(telebot.types.KeyboardButton(text="🕐 Часовые пояса"),
                          telebot.types.KeyboardButton(text="⚡ Частота опросов"))
+            keyboard.add(telebot.types.KeyboardButton(text="💰 Кошелёк ЮMoney"))
             keyboard.add(telebot.types.KeyboardButton(text="❌ Отменить"))
             # Отправляем сообщение
             sendMessage('🛠 <b>Добро пожаловать в кабинет настроек!</b>\n\n👇 Выберите интересующий параметр',
@@ -3121,6 +3130,11 @@ def settings(message: telebot.types.Message, step: int = 0):
                 sendMessage('👇 Выберите частоту опросов', user, reply=keyboard)
                 # Регистрируем следующее событие
                 bot.register_next_step_handler(message, settings, 2)
+            elif 'кошелёк' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('👇 Введите номер кошелька ЮMoney', user, reply=cancel)
+                # Регистрируем следующее событие
+                bot.register_next_step_handler(message, settings, 3)
             else:
                 # Отправляем сообщение
                 sendMessage('❌ Кабинет настроек закрыт', user, reply=telebot.types.ReplyKeyboardRemove())
@@ -3144,6 +3158,32 @@ def settings(message: telebot.types.Message, step: int = 0):
                 elif isinstance(user, Doctor):
                     # Обновляем настройки
                     user.update(Doctor.Types.settings, settingsDict)
+            # Ломаем иттерацию
+            break
+        elif case(3):
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Кабинет настроек закрыт', user, reply=telebot.types.ReplyKeyboardRemove())
+            elif checkInt(message.text):
+                # Настройки
+                settingsDict: dict = user.getSettings()
+                settingsDict['wallet'] = int(message.text)
+                # Отправляем сообщение
+                sendMessage('✔ Номер кошелька закреплён!', user, reply=telebot.types.ReplyKeyboardRemove())
+                # Проверка типа пользователя
+                if isinstance(user, Patient):
+                    # Обновляем настройки
+                    user.update(Patient.Types.settings, settingsDict)
+                elif isinstance(user, Doctor):
+                    # Обновляем настройки
+                    user.update(Doctor.Types.settings, settingsDict)
+            else:
+                # Отправляем сообщение
+                sendMessage('☝ Номер кошелька должен быть числом!\n\n👇 Введите номер кошелька ЮMoney', user,
+                            reply=cancel)
+                # Регистрируем следующее событие
+                bot.register_next_step_handler(message, settings, 3)
             # Ломаем иттерацию
             break
         elif case():
@@ -4183,8 +4223,9 @@ def minuteProcess(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequire
                                                                                         f"{patient.get()['username']}"
                                                                                         f" - HealthAI")
                             # Информируем пользоветелей
-                            sendMessage(f'🥳 <b>Пациент {patient.get()["username"]} оплатил счёт</b>\n\n'
-                                        f'В течении часа Вам поступит {ammount}', user)
+                            sendMessage(f'🥳 <b>Пациент {patient.get()["username"]} оплатил счёт</b>\n'
+                                        f'В течении часа Вам поступит {ammount}\n\n⚠ Если этого не произошло, '
+                                        f'обратитесь к администрации!', user)
                             sendMessage(f'✔ Чек от врача {user.get()["username"]} успешно оплачен!', patient)
                             # Ломаем иттерацию
                             break

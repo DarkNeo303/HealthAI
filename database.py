@@ -51,7 +51,8 @@ database.execute('''
     CREATE TABLE IF NOT EXISTS settings (
         id INTEGER PRIMARY KEY NOT NULL UNIQUE,
         timezone VARCHAR(255),
-        surveys TINYINT
+        surveys TINYINT,
+        wallet INTEGER
     )
 ''')
 
@@ -254,6 +255,7 @@ class Doctor:
                 # Вносим в настройки
                 self.__settings['timezone'] = settings[1]
                 self.__settings['surveys'] = settings[2]
+                self.__settings['wallet'] = settings[3]
             except Exception:
                 pass
 
@@ -340,7 +342,8 @@ class Doctor:
                 self.__settings = value
                 # Обновляем БД
                 result = self.__db.execute(f'UPDATE settings SET timezone="{value["timezone"]}", '
-                                           f'surveys={value["surveys"]} WHERE id={self.__id}')
+                                           f'surveys={value["surveys"]}, wallet={value["wallet"]} '
+                                           f'WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:
@@ -838,6 +841,7 @@ class Patient:
                 # Вносим в настройки
                 self.__settings['timezone'] = settings[1]
                 self.__settings['surveys'] = settings[2]
+                self.__settings['wallet'] = settings[3]
             except Exception:
                 pass
 
@@ -995,7 +999,8 @@ class Patient:
                 self.__settings = value
                 # Обновляем БД
                 result = self.__db.execute(f'UPDATE settings SET timezone="{value["timezone"]}", '
-                                           f'surveys={value["surveys"]} WHERE id={self.__id}')
+                                           f'surveys={value["surveys"]}, wallet={value["wallet"]} '
+                                           f'WHERE id={self.__id}')
                 connection.commit()
                 return result
             else:
