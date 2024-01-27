@@ -105,9 +105,9 @@ class Menu:
             keyboard.add(*btnList)
         # Вносим клавиши
         keyboard.add(
-            telebot.types.InlineKeyboardButton('<- Назад', callback_data=f'back|{self.__id}'),
+            telebot.types.InlineKeyboardButton('<- Назад', callback_data=f'bk|{self.__id}'),
             telebot.types.InlineKeyboardButton(f'{page+1}/{len(self.__pages)}', callback_data='hide'),
-            telebot.types.InlineKeyboardButton('Вперёд ->', callback_data=f'forward|{self.__id}')
+            telebot.types.InlineKeyboardButton('Вперёд ->', callback_data=f'fd|{self.__id}')
         )
         # Возвращаем результат
         return keyboard
@@ -1734,7 +1734,7 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
     defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo", "kickPatientDoctor",
                                   "kickDoctorPatient", "kickDoctorDoctor", "healCabinet",
                                   "clearAd", "premium", "myAds", "buyPrem", 'removeTable',
-                                  'back', 'forward']
+                                  'bk', 'fd', 'tz']
     # Проверка аргументов
     if defaultArgs[11] not in call.data.split('|')[0] and defaultArgs[12] not in call.data.split('|')[0]:
         # Удаляем сообщение
@@ -1943,6 +1943,31 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                                               reply_markup=menu.showAsMarkup(),
                                               text=call.message.text)
                         # Ломаем иттерацию
+                        break
+                    elif case(defaultArgs[13]):
+                        # Настройки
+                        sgs: dict = getUser(call.from_user.id).getSettings()
+                        # Вносим новый регион
+                        sgs['timezone'] = message['params'][0]
+                        # Проверка типа пользователя
+                        if isinstance(getUser(call.from_user.id), Doctor):
+                            # Запись настроек
+                            getUser(call.from_user.id).update(Doctor.Types.settings, sgs)
+                            # Отсылаем сообщение
+                            sendMessage('✔ Регион установлен!', call.from_user.id)
+                        elif isinstance(getUser(call.from_user.id), Patient):
+                            # Запись настроек
+                            getUser(call.from_user.id).update(Patient.Types.settings, sgs)
+                            # Отсылаем сообщение
+                            sendMessage('✔ Регион установлен!', call.from_user.id)
+                        else:
+                            # Отсылаем сообщение
+                            sendMessage('❌ Ошибка записи региона в настройки\n\nПользователь не найден!',
+                                        call.from_user.id)
+                        # Ломаем цикл
+                        break
+                    elif case():
+                        # Ломаем цикл
                         break
         except IndexError:
             pass
@@ -2970,12 +2995,18 @@ def settings(message: telebot.types.Message, step: int = 0):
                 tz: List[str] = pytz.all_timezones
                 # Клавиши
                 keyboardBtns: List[telebot.types.InlineKeyboardButton] = []
+                # Вносим информацию в ОЗУ
+                ram[message.from_user.id] = {
+                    'type': 'system',
+                    'operation': Operations.TimeZoneSelect
+                }
                 # Иттерация по поясам
                 for item in tz:
                     # Вносим клавишу
                     keyboardBtns.append(
                         # Вносим клавишу
-                        telebot.types.InlineKeyboardButton(f"🕐 {item}", callback_data=f"tz|{item}")
+                        telebot.types.InlineKeyboardButton(f"🕐 {item}",
+                                                           callback_data=f"tz|{item}")
                     )
                 # Создаём меню
                 menu: Menu = Menu(keyboardBtns)
@@ -2984,10 +3015,10 @@ def settings(message: telebot.types.Message, step: int = 0):
             elif 'частота' in message.text.lower():
                 # Клавиатура отмены
                 keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-                keyboard.add(telebot.types.KeyboardButton(text="🕐 1 раз в день"),
-                             telebot.types.KeyboardButton(text="🕐 2 раз в день"))
-                keyboard.add(telebot.types.KeyboardButton(text="🕐 3 раз в день"))
-                keyboard.add(telebot.types.KeyboardButton(text="❌ Отменить"))
+                keyboard.add(telebot.types.KeyboardButton("🕐 1 раз в день"),
+                             telebot.types.KeyboardButton("🕐 2 раз в день"))
+                keyboard.add(telebot.types.KeyboardButton("🕐 3 раз в день"))
+                keyboard.add(telebot.types.KeyboardButton("❌ Отменить"))
                 # Отправляем сообщение
                 sendMessage('👇 Выберите частоту опросов', user, reply=keyboard)
                 # Регистрируем следующее событие
@@ -3697,27 +3728,32 @@ def minuteProcess(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequire
     while True:
         # Разрешение
         doClear: bool = True
-        # Проверка регистрирующихся
-        for key in ramDict.keys():
-            try:
-                # Если есть ключ
-                if (ramDict[key]['type'] == 'doctor' and len(ramDict[key].keys()) < doctorKeysRequired or
-                        ramDict[key]['type'] == 'patient' and len(ramDict[key].keys()) < patientKeysRequired):
-                    # Возвращаем ошибку
-                    doClear = False
-                elif ramDict[key]['type'] == 'system':
-                    # Возвращаем ошибку
-                    doClear = False
-            except KeyError:
-                pass
-        # Если разрешено
-        if doClear:
-            # Если режим отладки
-            if stringToBool(os.getenv('DEBUG')):
-                # Выводим информацию
-                print(f"Current RAM: {ram} was cleaned!\nCurrent cooldown: {os.getenv('TIMER')}")
-            # Очищаем словарь
-            ramDict.clear()
+        try:
+            # Проверка регистрирующихся
+            for key in ramDict.keys():
+                try:
+                    # Если указан тип
+                    if 'type' in ramDict[key]:
+                        # Если есть ключ
+                        if (ramDict[key]['type'] == 'doctor' and len(ramDict[key].keys()) < doctorKeysRequired or
+                                ramDict[key]['type'] == 'patient' and len(ramDict[key].keys()) < patientKeysRequired):
+                            # Возвращаем ошибку
+                            doClear = False
+                        elif ramDict[key]['type'] == 'system':
+                            # Возвращаем ошибку
+                            doClear = False
+                except KeyError:
+                    pass
+            # Если разрешено
+            if doClear:
+                # Если режим отладки
+                if stringToBool(os.getenv('DEBUG')):
+                    # Выводим информацию
+                    print(f"Current RAM: {ram} was cleaned!\nCurrent cooldown: {os.getenv('TIMER')}")
+                # Очищаем словарь
+                ramDict.clear()
+        except Exception:
+            pass
         # Задержка
         time.sleep(int(os.getenv('TIMER')))
 

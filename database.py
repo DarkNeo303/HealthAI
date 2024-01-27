@@ -124,6 +124,7 @@ class Operations(Enum):
     ChangeMe = 3
     Diagnose = 4
     MakeTable = 5
+    TimeZoneSelect = 6
 
 
 # Тип данных таблицы
