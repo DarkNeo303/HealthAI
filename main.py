@@ -15,19 +15,132 @@ import datetime
 import threading
 from pympler import muppy
 from random import choice
-from typing import Union, List
 from dotenv import load_dotenv
 from database import getAllUserList
+from typing import Union, List, Tuple
 from deep_translator import GoogleTranslator
 from support import checkInt, Switch, ram, stringToBool
-from database import Patient, Doctor, getUser, History, Table, times
+from database import Patient, Doctor, getUser, History, Table, times, menus
 from database import Admin, Operations, Ads, getAllAds, photos, removePremium
+
+'''
+======================================
+               КЛАССЫ
+======================================
+'''
+
+
+# Inline меню
+class Menu:
+    # Инициализация
+    def __init__(self, btns: List[telebot.types.InlineKeyboardButton], rows: int = 2, columns: int = 8, size: int = 3):
+        # Вносим параметры
+        self.__rows: int = rows
+        self.__columns: int = columns - 1
+        self.__size: int = size
+        self.__pages: List[List[List[telebot.types.InlineKeyboardButton]]] = [[[]]]
+        self.__btns: List[telebot.types.InlineKeyboardButton] = btns
+        self.__opendPage: int = 0
+        # Иттераторы
+        page: int = 0
+        column: int = 0
+        row: int = 0
+        # Иттерация по списку
+        for btn in self.__btns:
+            # Если кол-во столбцов не превышено
+            if row <= self.__rows - 1:
+                # Вносим кнопку
+                self.__pages[page][column].append(btn)
+                # Иттерация
+                row += 1
+            else:
+                # Если колонки не превышены
+                if column <= self.__columns - 1:
+                    # Обнуление
+                    row = 0
+                    # Иттерация по столбцу
+                    column += 1
+                    # Вносим кнопку
+                    self.__pages[page].append([btn])
+                    # Иттерация
+                    row += 1
+                else:
+                    # Обнуление
+                    row = 0
+                    column = 0
+                    # Иттерация
+                    page += 1
+                    # Вносим кнопку
+                    self.__pages.append([[btn]])
+                    # Иттерация
+                    row += 1
+        # Запоминаем ID
+        self.__id: int = len(menus)
+        # Вносим меню
+        menus.append(self)
+
+    # Получение ID
+    def getId(self) -> int:
+        return self.__id
+
+    # Получение колонок и столбцов
+    def getRowsColumns(self) -> Tuple[int, int]:
+        return self.__rows, self.__columns + 1
+
+    # Получаем список кнопок
+    def getPagesAsList(self) -> List[List[List[telebot.types.InlineKeyboardButton]]]:
+        return self.__pages
+
+    # Показ как разметки
+    def showAsMarkup(self, page: int = None) -> telebot.types.InlineKeyboardMarkup:
+        # Если число не указано
+        if page is None:
+            # Указываем открытую страницу
+            page = self.__opendPage
+        # Разметка
+        keyboard: telebot.types.InlineKeyboardMarkup = telebot.types.InlineKeyboardMarkup()
+        # Иттерация по спику
+        for btnList in self.__pages[page]:
+            # Вносим клавиши
+            keyboard.add(*btnList)
+        # Вносим клавиши
+        keyboard.add(
+            telebot.types.InlineKeyboardButton('<- Назад', callback_data=f'back|{self.__id}'),
+            telebot.types.InlineKeyboardButton(f'{page+1}/{len(self.__pages)}', callback_data='hide'),
+            telebot.types.InlineKeyboardButton('Вперёд ->', callback_data=f'forward|{self.__id}')
+        )
+        # Возвращаем результат
+        return keyboard
+
+    # Перегрузка оператора сложения
+    def __add__(self, other):
+        # Если получено число
+        if isinstance(other, int):
+            # Если допустимо
+            if self.__opendPage + other <= len(self.__pages) - 1:
+                # Добавляем страницу
+                self.__opendPage += other
+        else:
+            # Выбрасываем ошибку
+            raise ValueError('Cant add not an "int" type!')
+
+    # Перегрузка оператора вычитания
+    def __sub__(self, other):
+        # Если получено число
+        if isinstance(other, int):
+            # Если допустимо
+            if self.__opendPage - other >= 0:
+                # Отнимаем страницу
+                self.__opendPage -= other
+        else:
+            # Выбрасываем ошибку
+            raise ValueError('Cant sub not an "int" type!')
+
 
 # Инициализация
 ai.initAi()
 load_dotenv()
 bot: telebot.TeleBot = telebot.TeleBot(os.getenv("TOKEN"))
-menus: list = []
 
 # Если Debug
 if stringToBool(os.getenv('DEBUG')):
@@ -57,100 +170,6 @@ skip.add(telebot.types.KeyboardButton(text="✔ Пропустить"),
 apply = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
 apply.add(telebot.types.KeyboardButton(text="✔ Подтвердить"),
           telebot.types.KeyboardButton(text="❌ Отменить"))
-
-'''
-======================================
-            ГЕНЕРАТОР МЕНЮ 
-======================================
-'''
-
-
-# Класс меню
-class Menu:
-    # Инициализация
-    def __init__(self, btns: List[telebot.types.InlineKeyboardButton], rows: int = 7, columns: int = 2,
-                 menusList=None):
-        # Применяем параметры
-        if menusList is None:
-            menusList = menus
-        # Если параметры указаны неверно
-        if columns - 1 <= 0 or rows - 2 <= 0:
-            # Выбрасываем ошибку
-            raise ValueError("Not enough rows or columns!")
-        else:
-            self.__menusList = menusList
-            self.__btns: List[dict] = {}
-            self.__columns: int = columns - 1
-            self.__rows: int = rows - 2
-            self.__page: int = 0
-            # Иттераторы
-            rowItter: int = 0
-            colItter: int = 0
-            parsePage: int = 0
-            # Генерируем список
-            for item in btns:
-                # Если нет страниц
-                if 'pages' not in self.__btns:
-                    # Вносим страницу
-                    self.__btns['pages'] = [{
-                        'line0': []
-                    }]
-                # Если допустимое кол-во
-                if colItter <= self.__columns:
-                    # Иттерация
-                    colItter += 1
-                    # Вносим кнопки
-                    self.__btns['pages'][parsePage][f'line{rowItter}'].append(item)
-                else:
-                    # Если иттерация допустима
-                    if rowItter <= self.__rows:
-                        # Иттерация
-                        rowItter += 1
-                        colItter = 0
-                        # Создаём новый список
-                        self.__btns['pages'][parsePage][f'line{rowItter}'] = []
-                    else:
-                        # Иттерация
-                        parsePage += 1
-                        rowItter = 0
-                        colItter = 0
-                        # Создаём новый список
-                        self.__btns['pages'].append({
-                            f'line{rowItter}': []
-                        })
-                        # Проверка условий
-                        if parsePage > 0:
-                            # Вносим регуляторы
-                            self.__btns['pages'][parsePage][f'line{rowItter}'].append(
-                                telebot.types.InlineKeyboardButton(
-                                    '< Назад', callback_data=f'backward|{len(menusList) + 1}|{parsePage - 2}'
-                                ))
-                            self.__btns['pages'][parsePage][f'line{rowItter}'].append(
-                                telebot.types.InlineKeyboardButton(
-                                    'Вперёд >', callback_data=f'forward|{len(menusList) + 1}|{parsePage}'
-                                ))
-                        else:
-                            # Вносим регуляторы
-                            self.__btns['pages'][parsePage][f'line{rowItter}'].append(
-                                telebot.types.InlineKeyboardButton('Вперёд >', callback_data=f'forward|{
-                                    len(menusList) + 1}|{parsePage}')
-                            )
-            # Вносим кол-во страниц
-            self.__pages: int = parsePage
-
-    # Вывод меню
-    def showMenu(self, page: int) -> List[telebot.types.InlineKeyboardButton]:
-        try:
-            # Возвращаем список
-            return self.__btns['pages'][page]
-        except Exception:
-            # Возвращаем ошибку
-            raise KeyError("Page is not found!")
-
-    # Получение страниц
-    def getPages(self) -> int:
-        return self.__pages
-
 
 '''
 ======================================
@@ -1711,12 +1730,15 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
 # Обработчик Inline запросов
 @bot.callback_query_handler(func=lambda call: True)
 def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
-    # Удаляем сообщение
-    bot.delete_message(call.message.chat.id, call.message.id)
     # Указываем значение по умолчанию
     defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo", "kickPatientDoctor",
                                   "kickDoctorPatient", "kickDoctorDoctor", "healCabinet",
-                                  "clearAd", "premium", "myAds", "buyPrem", 'removeTable']
+                                  "clearAd", "premium", "myAds", "buyPrem", 'removeTable',
+                                  'back', 'forward']
+    # Проверка аргументов
+    if defaultArgs[11] not in call.data.split('|')[0] and defaultArgs[12] not in call.data.split('|')[0]:
+        # Удаляем сообщение
+        bot.delete_message(call.message.chat.id, call.message.id)
     # Пользователь
     user: Union[Patient, Doctor, type(None)] = None
     try:
@@ -1888,6 +1910,44 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
         elif isinstance(user, Doctor):
             # Передаём параметр
             callCheckDoctor(call.message, message)
+    else:
+        try:
+            # Получаем сообщение
+            message: dict = {
+                'first': call.data.split('|')[1],
+                'message': call.data.split('|')[0],
+                'params': call.data.split('|')[1:]
+            }
+            # Если получен общий запрос
+            if message['message'] in defaultArgs:
+                # Распознаём callback
+                for case in Switch(message['message']):
+                    if case(defaultArgs[11]):
+                        # Обращение по параметру
+                        menu: Menu = menus[int(message['first'])]
+                        # Отнимаем страницу
+                        menu - 1
+                        # Меняем сообщение
+                        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
+                                              reply_markup=menu.showAsMarkup(),
+                                              text=call.message.text)
+                        # Ломаем иттерацию
+                        break
+                    elif case(defaultArgs[12]):
+                        # Обращение по параметру
+                        menu: Menu = menus[int(message['first'])]
+                        # Добавляем страницу
+                        menu + 1
+                        # Меняем сообщение
+                        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
+                                              reply_markup=menu.showAsMarkup(),
+                                              text=call.message.text)
+                        # Ломаем иттерацию
+                        break
+        except IndexError:
+            pass
+        # Возвращаем значение
+        return None
 
 
 '''
@@ -2915,15 +2975,12 @@ def settings(message: telebot.types.Message, step: int = 0):
                     # Вносим клавишу
                     keyboardBtns.append(
                         # Вносим клавишу
-                        keyboard.add(
-                            telebot.types.InlineKeyboardButton(f"🕐 {item}", callback_data=f"tz|{item}")
-                        )
+                        telebot.types.InlineKeyboardButton(f"🕐 {item}", callback_data=f"tz|{item}")
                     )
-                # Меню
+                # Создаём меню
                 menu: Menu = Menu(keyboardBtns)
-                print(menu.showMenu(0), menu.showMenu(1))
                 # Отправляем сообщение
-                sendMessage('👇 Выберите часовые пояса из списка ниже', user, reply=keyboard)
+                sendMessage('👇 Выберите часовые пояса из списка ниже', user, reply=menu.showAsMarkup())
             elif 'частота' in message.text.lower():
                 # Клавиатура отмены
                 keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)

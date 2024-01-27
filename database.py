@@ -28,6 +28,9 @@ database = connection.cursor()
 # Время опросов
 times: List[int] = json.loads(os.getenv('TIMES'))
 
+# Список активных меню
+menus: list = []
+
 # Создание таблицы докторов
 database.execute('''
     CREATE TABLE IF NOT EXISTS doctors (
