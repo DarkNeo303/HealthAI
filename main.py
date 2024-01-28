@@ -1967,6 +1967,30 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                     # Ломаем цикл
                     break
                 elif case(defaultArgs[8]):
+                    # Получаем список реклам
+                    adsList: Ads = Ads(message['user'])
+                    # Если рекламы есть
+                    if adsList.getAds():
+                        # Отправляем сообщение
+                        sendMessage('👇 Ваши объявления', message['user'])
+                        # Иттерация по рекламам
+                        for ad in adsList.getAds():
+                            # Если есть фото
+                            if ad.photo is not None:
+                                # Сообщение
+                                sendMessage(f'<b>{ad.label}</b>\n\n{ad.description}\n\nАвтор: '
+                                            f'<a href="tg://user?id={ad.author.get()["id"]}">'
+                                            f'{ad.author.get()["username"]}</a>\nИстекает: {ad.experies}',
+                                            message['user'], photo=ad.photo)
+                            else:
+                                # Сообщение
+                                sendMessage(f'<b>{ad.label}</b>\n\n{ad.description}\n\nАвтор: '
+                                            f'<a href="tg://user?id={ad.author.get()["id"]}">'
+                                            f'{ad.author.get()["username"]}</a>\nИстекает: {ad.experies}',
+                                            message['user'])
+                    else:
+                        # Отправляем сообщение
+                        sendMessage('😢 У Вас пока нет объявлений', message['user'])
                     # Ломаем цикл
                     break
                 elif case(defaultArgs[9]):
@@ -4218,16 +4242,25 @@ def showAdsAndCheckPremium():
                     if getAllUserList(True):
                         # Иттерация по пользователям
                         for user in getAllUserList(True):
+                            try:
+                                # Получаем рекламу пользователя
+                                curAd: Ads = Ads(user)
+                                # Проверка всех объявлений
+                                curAd.checkAd()
+                            except Exception:
+                                pass
                             # Если нету премиума
                             if not user.isPremium():
                                 # Если есть фото
                                 if ad.photo is not None:
                                     # Публикуем сообщение
-                                    sendMessage(f'💎 <b>Рекламное объявление: </b>{ad.label}\n\n{ad.description}\n'
+                                    sendMessage(f'💎 <b>Рекламное объявление: </b>'
+                                                f'{ad.label}\n\n{ad.description}\n'
                                                 f'\n<b>{ad.author.get()["username"]}</b>', user, photo=ad.photo)
                                 else:
                                     # Публикуем сообщение
-                                    sendMessage(f'💎 <b>Рекламное объявление: </b>{ad.label}\n\n{ad.description}\n'
+                                    sendMessage(f'💎 <b>Рекламное объявление: </b>'
+                                                f'{ad.label}\n\n{ad.description}\n'
                                                 f'\n<b>{ad.author.get()["username"]}</b>', user)
                 else:
                     # Если есть пользователи
