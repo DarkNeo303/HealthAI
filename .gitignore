@@ -1,3 +1,4 @@
+.env
 data
 data/
 data/*
@@ -8,9 +9,9 @@ templates/
 /templates/*
 templates/*
 templates
+train.json
 hash.json
 hack.json
-train.json
 __pycache__/
 __pycache__
 /.idea/
