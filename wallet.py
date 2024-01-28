@@ -34,6 +34,7 @@ sessions: dict = {}
 class paymentTypes(Enum):
     premium = 1,
     setPayment = 2
+    buyAd = 3
 
 
 # Открываем слова хэширования

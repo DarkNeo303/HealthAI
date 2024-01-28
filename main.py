@@ -1825,6 +1825,89 @@ def healCabinet(message: telebot.types.Message, doctor: Doctor, patient: Patient
             break
 
 
+# Кабинет создания рекламы
+def createAdCabinet(message: telebot.types.Message, user: Union[Doctor, Patient], step: int = 0, ad: dict = None):
+    # Если получена отмена
+    if 'отменить' in message.text.lower():
+        # Выводим сообщение
+        sendMessage('❌ Создание рекламы отменено!', user, reply=telebot.types.ReplyKeyboardRemove())
+    else:
+        # Иттерация по шагам
+        for case in Switch(step):
+            # Проверка шага
+            if case(0):
+                # Если длинна допустима
+                if len(message.text) <= 255:
+                    # Вносим сообщение в словарь
+                    ad = {
+                        'label': message.text
+                    }
+                    # Отправляем сообщение
+                    sendMessage('✔ Название получено!\n\n👇 Введите описание', user)
+                    # Регистрируем следующий шаг
+                    bot.register_next_step_handler(message, createAdCabinet, user, 1, ad)
+                else:
+                    # Выводим сообщение
+                    sendMessage('☝ Название не должно содержать больше 255 символов, повторите попытку!', user)
+                    # Регистрируем следующий шаг
+                    bot.register_next_step_handler(message, createAdCabinet, user)
+                # Ломаем иттерацию
+                break
+            elif case(1):
+                # Вносим сообщение в словарь
+                ad['description'] = message.text
+                # Отправляем сообщение
+                sendMessage('✔ Описание получено!\n\n👇 Прикрепите фото, если необходимо', user, reply=skip)
+                # Регистрируем следующий шаг
+                bot.register_next_step_handler(message, createAdCabinet, user, 2, ad)
+                # Ломаем иттерацию
+                break
+            elif case(2):
+                # Фото
+                photo: bytes = None
+                # Если пропуск
+                if 'пропустить' in message.text.lower():
+                    # Создаём счёт
+                    key, url = operations.createBill('Рекламное объявление', int(os.getenv('ADCOST')))
+                    # Отправляем сообщение
+                    sendMessage(f'✔ Этап пропущен!\n\n'
+                                f'💸 Оплатите счёт по <a href="{url}">этой ссылке</a> на сумму {os.getenv('ADCOST')}₽',
+                                user, reply=telebot.types.ReplyKeyboardRemove())
+                else:
+                    try:
+                        # Получаем фото
+                        photo: bytes = bot.download_file(bot.get_file(message.photo[-1].file_id).file_path)
+                    except Exception:
+                        # Выводим сообщение
+                        sendMessage('☝ Вы должны прикрепить фотографию!', user)
+                        # Регистрируем следующий шаг
+                        bot.register_next_step_handler(message, createAdCabinet, user, step, ad)
+                    # Если фото есть
+                    if photo is not None:
+                        # Создаём счёт
+                        key, url = operations.createBill('Рекламное объявление', int(os.getenv('ADCOST')))
+                        # Вносим в объявление
+                        ad['photo'] = photo
+                        # Вносим в память
+                        sessions[key] = {
+                            'user': user,
+                            'payment': paymentTypes.buyAd,
+                            'ad': ad
+                        }
+                        # Отправляем сообщение
+                        sendMessage(f'✔ Фотография получена!\n\n'
+                                    f'💸 Оплатите счёт по <a href="{url}">этой ссылке</a> '
+                                    f'на сумму {os.getenv('ADCOST')}₽',
+                                    user, reply=telebot.types.ReplyKeyboardRemove())
+                # Ломаем иттерацию
+                break
+            elif case():
+                # Ломаем иттерацию
+                break
+    # Возвращаем значение
+    return None
+
+
 # Обработчик Inline запросов
 @bot.callback_query_handler(func=lambda call: True)
 def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
@@ -2083,6 +2166,10 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                     # Ломаем цикл
                     break
                 elif case(15):
+                    # Отправляем сообщение
+                    sendMessage('👇 Введите название рекламы', message['user'], reply=cancel)
+                    # Регистрируем следующий шаг
+                    bot.register_next_step_handler(message, createAdCabinet, message['user'])
                     # Ломаем цикл
                     break
                 elif case():
@@ -4415,6 +4502,22 @@ def minuteProcess(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequire
                                         f'В течении часа Вам поступит {ammount}\n\n⚠ Если этого не произошло, '
                                         f'обратитесь к администрации!', user)
                             sendMessage(f'✔ Чек от врача {user.get()["username"]} успешно оплачен!', patient)
+                            # Ломаем иттерацию
+                            break
+                        elif case(paymentTypes.buyAd):
+                            # Если есть фото
+                            if 'photo' in sessions[key]:
+                                # Создаём объявление
+                                Ads(user).createAd(sessions[key]['ad']['label'], sessions[key]['description'],
+                                                   sessions[key]['photo'], user)
+                            else:
+                                # Создаём объявление
+                                Ads(user).createAd(sessions[key]['ad']['label'], sessions[key]['description'],
+                                                   author=user)
+                            # Информируем пользователя
+                            sendMessage(f'🤑 <b>Вы оплатили счёт за своё рекламное объявление!</b>'
+                                        f'\n\nТеперь в течении двух недель пользователи будут получать '
+                                        f'Ваше объявление раз в 6 часов', user)
                             # Ломаем иттерацию
                             break
                         elif case():
