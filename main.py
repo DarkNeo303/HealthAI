@@ -1832,7 +1832,7 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
     defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo", "kickPatientDoctor",
                                   "kickDoctorPatient", "kickDoctorDoctor", "healCabinet",
                                   "clearAd", "premium", "myAds", "buyPrem", 'removeTable',
-                                  'bk', 'fd', 'tz', 'adRem']
+                                  'bk', 'fd', 'tz', 'adRem', 'buyAd']
     # Проверка аргументов
     if defaultArgs[11] not in call.data.split('|')[0] and defaultArgs[12] not in call.data.split('|')[0]:
         # Удаляем сообщение
@@ -2080,6 +2080,12 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                     else:
                         # Отправляем сообщение
                         sendMessage(f'😢 У Вас ещё нет объявлений', message['user'])
+                    # Ломаем цикл
+                    break
+                elif case(15):
+                    # Ломаем цикл
+                    break
+                elif case():
                     # Ломаем цикл
                     break
             # Возвращаем значение
