@@ -3254,7 +3254,8 @@ def petition(message: telebot.types.Message, step: int = 0):
                                 getUser(message.from_user.id), reply=telebot.types.ReplyKeyboardRemove())
                     # Отсылаем сообщение случайному администратору
                     sendMessage(f'⚠ <b>Получена новая жалоба от '
-                                f'{getUser(message.from_user.id).get()["username"]}'
+                                f'<a href="tg://user?id={getUser(message.from_user.id).get()["id"]}">'
+                                f'{getUser(message.from_user.id).get()["username"]}</a>'
                                 f'</b>\n\n{message.text}', choice(admins).getUser().get()['id'])
                 else:
                     # Отправляем сообщение
