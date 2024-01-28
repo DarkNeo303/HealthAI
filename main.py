@@ -3023,6 +3023,25 @@ def help(message):
                 getUser(message.from_user.id))
 
 
+# Холдер команды спонсорки
+@bot.message_handler(commands=['sponsor', 'donate'])
+def sponsor(message):
+    # Отправляем сообщение
+    sendMessage(f'🤗 <b>Благотворительное безвозмездное пожертвование можно сделать</b>\n\n👇 '
+                f'<a href="{os.getenv("SPONSORQIWI")}">Тут</a> и '
+                f'<a href="{os.getenv("SPONSORYOOM")}">тут</a>',
+                getUser(message.from_user.id))
+
+
+# Холдер команды форума
+@bot.message_handler(commands=['forum', 'discussion'])
+def forum(message):
+    # Отправляем сообщение
+    sendMessage(f'🤗 <b>Форум HealthAI</b>\n\n👇 '
+                f'<a href="{os.getenv("FORUM")}">Кликни на меня</a>',
+                getUser(message.from_user.id))
+
+
 # Холдер команды помощи
 @bot.message_handler(commands=['ads', 'ad'])
 def ads(message):
