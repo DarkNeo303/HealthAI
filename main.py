@@ -1832,7 +1832,7 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
     defaultArgs = defaultArgs or ["sendSelfLink", "callFromTo", "kickPatientDoctor",
                                   "kickDoctorPatient", "kickDoctorDoctor", "healCabinet",
                                   "clearAd", "premium", "myAds", "buyPrem", 'removeTable',
-                                  'bk', 'fd', 'tz']
+                                  'bk', 'fd', 'tz', 'adRem']
     # Проверка аргументов
     if defaultArgs[11] not in call.data.split('|')[0] and defaultArgs[12] not in call.data.split('|')[0]:
         # Удаляем сообщение
@@ -1959,6 +1959,37 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                     # Ломаем цикл
                     break
                 elif case(defaultArgs[6]):
+                    # Получаем список реклам
+                    adsList: Ads = Ads(message['user'])
+                    # Если рекламы есть
+                    if adsList.getAds():
+                        # Отправляем сообщение
+                        sendMessage('👇 Ваши объявления', message['user'])
+                        # Иттерация по рекламам
+                        for ad in adsList.getAds():
+                            # Клавиатура
+                            keyboard: telebot.types.InlineKeyboardMarkup = telebot.types.InlineKeyboardMarkup()
+                            keyboard.add(
+                                telebot.types.InlineKeyboardButton("❌ Удалить",
+                                                                   callback_data=f"adRem|{message['user'].get()['id']}|"
+                                                                                 f"{ad.id}")
+                            )
+                            # Если есть фото
+                            if ad.photo is not None:
+                                # Сообщение
+                                sendMessage(f'<b>{ad.label}</b>\n\n{ad.description}\n\nАвтор: '
+                                            f'<a href="tg://user?id={ad.author.get()["id"]}">'
+                                            f'{ad.author.get()["username"]}</a>\nИстекает: {ad.experies}',
+                                            message['user'], photo=ad.photo, reply=keyboard)
+                            else:
+                                # Сообщение
+                                sendMessage(f'<b>{ad.label}</b>\n\n{ad.description}\n\nАвтор: '
+                                            f'<a href="tg://user?id={ad.author.get()["id"]}">'
+                                            f'{ad.author.get()["username"]}</a>\nИстекает: {ad.experies}',
+                                            message['user'], reply=keyboard)
+                    else:
+                        # Отправляем сообщение
+                        sendMessage('😢 У Вас пока нет объявлений', message['user'])
                     # Ломаем цикл
                     break
                 elif case(defaultArgs[7]):
@@ -2027,6 +2058,28 @@ def callCheck(call: telebot.types.CallbackQuery, defaultArgs: List[str] = None):
                                     return None
                     # Информируем пользователей
                     sendMessage(f'❌ Опросник с ID {message["params"][2]} не был найден!', message['user'])
+                    # Ломаем цикл
+                    break
+                elif case(14):
+                    # Удаляемый индекс
+                    remId: int = 0
+                    # Получаем всю рекламу пользователя
+                    adsList: Ads = Ads(message['user'])
+                    # Если есть реклама
+                    if adsList:
+                        # Иттерация по объявлениям
+                        for ad in adsList:
+                            # Если ID совпали
+                            if ad.id == message['params'][0]:
+                                # Удаляем объявление
+                                remId = ad.id
+                        # Удаляем рекламу
+                        adsList.removeAd(remId)
+                        # Отправляем сообщение
+                        sendMessage(f'✔ Обновление с ID {remId} успешно удалено!', message['user'])
+                    else:
+                        # Отправляем сообщение
+                        sendMessage(f'😢 У Вас ещё нет объявлений', message['user'])
                     # Ломаем цикл
                     break
             # Возвращаем значение
