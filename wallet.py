@@ -8,8 +8,6 @@
 # Библиотеки
 import json
 import hashlib
-import os
-
 import requests
 from enum import Enum
 from os import getenv
