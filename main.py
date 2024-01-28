@@ -3212,9 +3212,66 @@ def reset(message):
                 f'о причине перезапуска', getUser(message.from_user.id), reply=telebot.types.ReplyKeyboardRemove())
 
 
+# Холдер команды жалобы
+@bot.message_handler(commands=['complaint', 'petition'])
+def petition(message: telebot.types.Message, step: int = 0):
+    # Иттерация по шагам
+    for case in Switch(step):
+        # Проверка шагов
+        if case(0):
+            # Если пользователь существует
+            if getUser(message.from_user.id) is not None:
+                # Отправляем сообщение
+                sendMessage('👇 Введите свою жалобу или предложение.\n\n⚠ Учтите, что ложное обращение может '
+                            'караться баном или предупреждениями!', getUser(message.from_user.id), reply=cancel)
+                # Регистрируем следующий шаг
+                bot.register_next_step_handler(message, petition, 1)
+            else:
+                # Отправляем сообщение
+                sendMessage('❌ Жалоба отменена.\n\nВы не авторизованы!',
+                            message.from_user.id, reply=telebot.types.ReplyKeyboardRemove())
+            # Ломаем иттерацию
+            break
+        elif case(1):
+            # Если отмена
+            if 'отменить' in message.text.lower():
+                # Отправляем сообщение
+                sendMessage('❌ Жалоба отменена', getUser(message.from_user.id),
+                            reply=telebot.types.ReplyKeyboardRemove())
+            else:
+                # Список админов
+                admins: List[Admin] = []
+                # Иттерация по пользователям
+                for user in getAllUserList():
+                    # Если пользователь - админ
+                    if Admin(user).getAdmin()['level'] > 0:
+                        # Вносим админа
+                        admins.append(Admin(user))
+                # Если есть админы
+                if admins:
+                    # Отправляем сообщение
+                    sendMessage('✔ Ваша жалоба принята! Ожидайте пока с Вами свяжется администратор',
+                                getUser(message.from_user.id), reply=telebot.types.ReplyKeyboardRemove())
+                    # Отсылаем сообщение случайному администратору
+                    sendMessage(f'⚠ <b>Получена новая жалоба от '
+                                f'{getUser(message.from_user.id).get()["username"]}'
+                                f'</b>\n\n{message.text}', choice(admins).getUser().get()['id'])
+                else:
+                    # Отправляем сообщение
+                    sendMessage('❌ Жалоба отменена.\n\nУ нас недостаточно админов 😢',
+                                getUser(message.from_user.id), reply=telebot.types.ReplyKeyboardRemove())
+            # Ломаем иттерацию
+            break
+        elif case():
+            # Ломаем иттерацию
+            break
+        # Возвращаем значение
+        return None
+
+
 # Холдер команды списка
 @bot.message_handler(commands=['list'])
-def listCommand(message):
+def listCommand(message: telebot.types.Message):
     # Получаем список пользователей
     userList: List[Union[Doctor, Patient]] = getAllUserList()
     # Если список не пустой
