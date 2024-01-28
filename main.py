@@ -4335,8 +4335,8 @@ def minuteProcess(ramDict: dict, patientKeysRequired: int = 6, doctorKeysRequire
 
 
 # Запуск фоновых процессов
-threading.Thread(target=minuteProcess, args=(ram,)).start()
 threading.Thread(target=showAdsAndCheckPremium).start()
+threading.Thread(target=minuteProcess, args=(ram,)).start()
 
 # Цикл
 bot.infinity_polling()
