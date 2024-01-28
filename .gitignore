@@ -1,7 +1,13 @@
+data
 data/
 data/*
+/data/
+/data/*
+images
 images/
 images/*
+/images/*
+/images/
 hash.json
 hack.json
 train.json
