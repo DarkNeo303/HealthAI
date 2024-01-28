@@ -3261,23 +3261,27 @@ def listCommand(message):
                                     # Если есть номер телефона
                                     if 'phone' in user.get():
                                         # Вносим в список
-                                        doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                                        doctors['message'] += (f"✔ {doctors['count']}. <a href='tg://user?id="
+                                                               f"{user.get()['id']}'>{user.get()['username']}</a> "
                                                                f"[{user.get()['qualification']}]\n📱 Телефон: "
                                                                f"{user.get()['phone']}\n")
                                     else:
                                         # Вносим в список
-                                        doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                                        doctors['message'] += (f"✔ {doctors['count']}. <a href='tg://user?id="
+                                                               f"{user.get()['id']}'>{user.get()['username']}</a> "
                                                                f"[{user.get()['qualification']}]\n")
                                 else:
                                     # Если есть номер телефона
                                     if 'phone' in user.get():
                                         # Вносим в список
-                                        doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                                        doctors['message'] += (f"{doctors['count']}. <a href='tg://user?id="
+                                                               f"{user.get()['id']}'>{user.get()['username']}</a> "
                                                                f"[{user.get()['qualification']}]\n📱 Телефон: "
                                                                f"{user.get()['phone']}\n")
                                     else:
                                         # Вносим в список
-                                        doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                                        doctors['message'] += (f"{doctors['count']}. <a href='tg://user?id="
+                                                               f"{user.get()['id']}'>{user.get()['username']}</a> "
                                                                f"[{user.get()['qualification']}]\n")
                             else:
                                 # Если верифицирован
@@ -3285,28 +3289,36 @@ def listCommand(message):
                                     # Если есть номер телефона
                                     if 'phone' in user.get():
                                         # Вносим в список
-                                        doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                                        doctors['message'] += (f"✔ {doctors['count']}. <a href='tg://user?id="
+                                                               f"{user.get()['id']}'>{user.get()['username']}</a> "
                                                                f"[{user.get()['qualification']}]\n📱 Телефон: "
                                                                f"{user.get()['phone']}\n👨‍⚕️ Руководитель: "
-                                                               f"{director.get()['username']}\n")
+                                                               f"<a href='tg://user?id={director.get()['id']}'>"
+                                                               f"{director.get()['username']}</a>\n")
                                     else:
                                         # Вносим в список
-                                        doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                                        doctors['message'] += (f"✔ {doctors['count']}. <a href='tg://user?id="
+                                                               f"{user.get()['id']}'>{user.get()['username']}</a> "
                                                                f"[{user.get()['qualification']}]\n👨‍⚕️ Руководитель: "
-                                                               f"{director.get()['username']}\n")
+                                                               f"<a href='tg://user?id={director.get()['id']}'>"
+                                                               f"{director.get()['username']}</a>\n")
                                 else:
                                     # Если есть номер телефона
                                     if 'phone' in user.get():
                                         # Вносим в список
-                                        doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                                        doctors['message'] += (f"{doctors['count']}. <a href='tg://user?id="
+                                                               f"{user.get()['id']}'>{user.get()['username']}</a> "
                                                                f"[{user.get()['qualification']}]\n📱 Телефон: "
                                                                f"{user.get()['phone']}\n👨‍⚕️ Руководитель: "
-                                                               f"{director.get()['username']}\n")
+                                                               f"<a href='tg://user?id={director.get()['id']}'>"
+                                                               f"{director.get()['username']}</a>\n")
                                     else:
                                         # Вносим в список
-                                        doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                                        doctors['message'] += (f"{doctors['count']}. <a href='tg://user?id="
+                                                               f"{user.get()['id']}'>{user.get()['username']}</a> "
                                                                f"[{user.get()['qualification']}]\n👨‍⚕️ Руководитель: "
-                                                               f"{director.get()['username']}\n")
+                                                               f"<a href='tg://user?id={director.get()['id']}'>"
+                                                               f"{director.get()['username']}</a>\n")
                     # Прибавляем сообщения
                     msg += doctors['message']
                     # Отправляем сообщение
@@ -3330,11 +3342,13 @@ def listCommand(message):
                             # Если есть префикс
                             if Admin(user).getAdmin()['prefix'] != "undefined":
                                 # Вносим в список
-                                admins['message'] += (f"{admins['count']}. {user.get()['username']} "
+                                admins['message'] += (f"{admins['count']}. <a href='tg://user?id={user.get()['id']}'>"
+                                                      f"{user.get()['username']}</a> "
                                                       f"[{Admin(user).getAdmin()['prefix']}]\n")
                             else:
                                 # Вносим в список
-                                admins['message'] += f"{admins['count']}. {user.get()['username']}\n"
+                                admins['message'] += (f"{admins['count']}. <a href='tg://user?id={user.get()['id']}'>"
+                                                      f"{user.get()['username']}</a>\n")
                     # Прибавляем сообщения
                     msg += admins['message']
                     # Отправляем сообщение
@@ -3368,7 +3382,8 @@ def listCommand(message):
                     # Если есть префикс
                     if Admin(user).getAdmin()['prefix'] != "undefined":
                         # Вносим в список
-                        admins['message'] += (f"{admins['count']}. {user.get()['username']} "
+                        admins['message'] += (f"{admins['count']}. <a href='tg://user?id={user.get()['id']}'>"
+                                              f"{user.get()['username']}</a> "
                                               f"[{Admin(user).getAdmin()['prefix']}]\n")
                     else:
                         # Вносим в список
@@ -3382,23 +3397,27 @@ def listCommand(message):
                         # Если есть номер телефона
                         if 'phone' in user.get():
                             # Вносим в список
-                            doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                            doctors['message'] += (f"✔ {doctors['count']}. <a href='tg://user?id={user.get()['id']}'>"
+                                                   f"{user.get()['username']}</a> "
                                                    f"[{user.get()['qualification']}]\n📱 Телефон: "
                                                    f"{user.get()['phone']}\n")
                         else:
                             # Вносим в список
-                            doctors['message'] += (f"✔ {doctors['count']}. {user.get()['username']} "
+                            doctors['message'] += (f"✔ {doctors['count']}. <a href='tg://user?id={user.get()['id']}'>"
+                                                   f"{user.get()['username']}</a> "
                                                    f"[{user.get()['qualification']}]\n")
                     else:
                         # Если есть номер телефона
                         if 'phone' in user.get():
                             # Вносим в список
-                            doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                            doctors['message'] += (f"{doctors['count']}. <a href='tg://user?id={user.get()['id']}'>"
+                                                   f"{user.get()['username']}</a> "
                                                    f"[{user.get()['qualification']}]\n📱 Телефон: "
                                                    f"{user.get()['phone']}\n")
                         else:
                             # Вносим в список
-                            doctors['message'] += (f"{doctors['count']}. {user.get()['username']} "
+                            doctors['message'] += (f"{doctors['count']}. <a href='tg://user?id={user.get()['id']}'>"
+                                                   f"{user.get()['username']}</a> "
                                                    f"[{user.get()['qualification']}]\n")
             # Прибавляем сообщения
             msg += f"{admins['message']}\n👨‍⚕️ <b>Врачи:</b>\n{doctors['message']}"
