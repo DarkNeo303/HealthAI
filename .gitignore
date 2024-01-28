@@ -3,11 +3,11 @@ data/
 data/*
 /data/
 /data/*
-images
-images/
-images/*
-/images/*
-/images/
+/templates/
+templates/
+/templates/*
+templates/*
+templates
 hash.json
 hack.json
 train.json
